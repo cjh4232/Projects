@@ -1,2 +1,3 @@
 # Personal_Projects
-All projects not related to a job
+
+All projects found here are unrelated to a job and have been completed in my own free time
