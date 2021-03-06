@@ -1,6 +1,6 @@
 # Twitter Classification Project
 
-These two projects were the cumulative project for the supervised learning section for machine learning
+These two projects were the cumulative project for the supervised learning section for machine learning on Codecademy
 
 ## Viral Tweet
 
