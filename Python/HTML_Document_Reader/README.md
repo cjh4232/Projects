@@ -1,5 +1,5 @@
 ## Overview
-The company I work for had a significant amount of data stored in individual html files that required some form of consolidation based on the assembly serial number and formatted
+There was a significant amount of data stored in individual html files that required some form of consolidation based on the assembly serial number and formatted
 in a useful way for analysis. The information for each file was broken down into four features:
 
 - Serial Number
@@ -12,11 +12,11 @@ in a useful way for analysis. The information for each file was broken down into
 - Saggital Measurement
 - Tangential Measurement
 
-I created a class, instantiated with the root directory of the data, with built-in functions to obtain the data given a file name within the root directory.
+Created a class, instantiated with the root directory of the data, with built-in functions to pull the data out of a given file within the root directory.
 
-The get_data function uses all the built-in functions to build and return a pandas DataFrame of all the data gathered.
+The get_data function uses all the built-in functions to construct and return a pandas DataFrame of all the data gathered.
 
-Once the DataFrame has been returned the user can perform their analysis.
+Once the DataFrame has been returned, the user can perform their analysis within the Python environment or output into a file for use in other software.
 
 ## Details
 The file names were saved with a standard nomenclauture and that formatting was used to obtain some of the data.
@@ -26,7 +26,5 @@ The file names were saved with a standard nomenclauture and that formatting was 
 - Serial Number = 4
 - Location = BL
 
-Since the documents were not consistent with each other I couldn't simply read the document and assign a specific index for the data. Instead I used the Natural Language
-Tool Kit (NLTK) to find matches to the frequency of interest (in my case 200 lp/mm) and obtain the corresponding measurement values. I saved the data into an Excel
-spreadsheet where I was able to create a pivot table and make determinations on which assemblies needed our attention and which could move through the rest of our
-process.
+Since the documents were not consistent with each other, it wasn't possible to simply read the document and assign a specific index for the data. Instead, the Natural Language
+Tool Kit (NLTK) was implemented to find matches to the frequency of interest (in this case 200 lp/mm) and obtain the corresponding measurement values. The data was output into an Excel spreadsheet where a pivot table was created to make determinations on which assemblies needed attention and which could move through the rest of the process.
