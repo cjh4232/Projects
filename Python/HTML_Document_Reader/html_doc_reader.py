@@ -52,7 +52,7 @@ class HTML_Doc_Reader():
     # The read_html_NLTK function uses the Natural Language Tool Kit to parse the html document,
     # find the lp/mm value of interest (in this case, 200) and then retrieve the data points
     # associated with that value of interest by going into the nested lists of document information
-    def read_html_NLTK(self, fileName):
+    def read_html_NLTK(self, fileName, freq):
         
         # Opens the file using the root directory provided in the class instaiation & file name
         file = open(self.root_dir + fileName, 'r')
@@ -64,7 +64,7 @@ class HTML_Doc_Reader():
         text = nltk.Text(nltk.word_tokenize(read_file))
         
         # Obtain a list of matches to the value of interest
-        match = text.concordance_list("200")
+        match = text.concordance_list(freq)
         
         # Create an empty list to store upcoming data
         data = []
@@ -78,19 +78,19 @@ class HTML_Doc_Reader():
     
     # The get_tan function uses the read_html_NLTK function to get the two datapoints
     # out of the document and returns the tangential value
-    def get_tan(self, fileName) -> float:
-        data = self.read_html_NLTK(fileName)
+    def get_tan(self, fileName, freq) -> float:
+        data = self.read_html_NLTK(fileName, freq)
         return data[1]
 
     # The get_sag function uses the read_html_NLTK function to get the two datapoints
     # out of the document and returns the saggital value
-    def get_sag(self, fileName) -> float:
-        data = self.read_html_NLTK(fileName)
+    def get_sag(self, fileName, freq) -> float:
+        data = self.read_html_NLTK(fileName, freq)
         return data[0]
     
     # The get_data function makes use of all of the built-in class functions to build
     # mulitple lists of data and returns them zipped together into a pandas DataFrame
-    def get_data(self):
+    def get_data(self, freq):
         
         # Create empty lists to store upcoming data
         SN = []
@@ -109,8 +109,8 @@ class HTML_Doc_Reader():
         for file in file_list:
             SN.append(self.get_SN(file))
             LOC.append(self.get_loc(file))
-            SAG.append(self.get_sag(file))
-            TAN.append(self.get_tan(file))
+            SAG.append(self.get_sag(file, freq))
+            TAN.append(self.get_tan(file, freq))
         
         # Create a pandas DataFrame from the zipped lists and column names
         df = pd.DataFrame(zip(SN, LOC, SAG, TAN), columns=COL_NAMES)
