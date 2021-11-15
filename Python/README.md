@@ -1,4 +1,4 @@
 # Python Projects
-The code in this section was created by myself for necessary tools and/or fun or as exercises in online learning or learning via book.
+The code in this section was written by myself for necessary tools, for fun, or as an exercise in an online learning exercise or learning via book.
 
 ## Top Projects
