@@ -1,0 +1,368 @@
+---
+title: "Cyclistic-Case-Study"
+author: "Cody Hatch"
+date: "11/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages, include=FALSE}
+library(dplyr)
+library(magrittr)
+library(knitr)
+library(ggplot2)
+library(lubridate)
+```
+
+# **Introduction**
+
+I am a junior data analyst working in the marketing analyst team at Cyclistic, a fictional bike-share company in Chicago. The director of marketing believes the company’s future success depends on maximizing the number of annual memberships. Therefore, the marketing team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights, my team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve my recommendations, so they must be backed up with compelling data insights and professional data visualizations.
+
+Customers who purchase single-ride or full-day passes are referred to as casual riders. Customers who purchase annual memberships are Cyclistic members.
+
+It's been concluded that annual members are much more profitable than casual riders. Although the pricing flexibility helps Cyclistic attract more customers, the team believes that maximizing the number of annual members will be key to future growth. Rather than creating a marketing campaign that targets all-new customers, the team believes there is a very good chance to convert casual riders into members. They note that casual riders are already aware of the Cyclistic program and have chosen Cyclistic for their mobility needs.
+
+The executive team has set a clear goal: Design marketing strategies aimed at converting casual riders into annual members. In order to do that, however, the marketing analyst team needs to better understand how annual members and casual riders differ, why casual riders would buy a membership, and how digital media could affect their marketing tactics. The marketing team are interested in analyzing the Cyclistic historical bike trip data to identify trends.
+
+I will be answering their questions using the six steps of data analytics taught throughout the Google Data Analytics course: ask, prepare, process, analyze, share, act
+
+## **Ask**
+
+The main question this report is concerned with is:
+
+**How do annual members and casual riders use Cyclistic differently?**
+
+## **Prepare**
+
+To begin, the rider data for the last 12-13 months has been downloaded from the company and can be found [here](https://divvy-tripdata.s3.amazonaws.com/index.html).
+
+**Note**: 
+- The datasets have a different name because Cyclistic is a fictional company.
+- The data has been made available by Motivate International Inc. under [this](https://www.divvybikes.com/data-license-agreement) license.
+- Data-privacy issues prohibit the use of riders’ personally identifiable information.
+
+After being downloaded the data was stored locally as csv files in a data directory.
+
+The data was loaded and merged together into a single dataframe.
+
+We'll want to start with a general overview of what the data looks like and dig deeper from there.
+
+```{r load data}
+working_directory <- getwd()
+data_directory <- "/Data/"
+vec = cbind(working_directory, data_directory)
+filedir <- paste(working_directory, data_directory, sep="")
+file_names <- paste(filedir, dir(filedir), sep="")
+merged_data <- do.call(rbind,lapply(file_names,read.csv))
+str(merged_data)
+
+summary(merged_data)
+
+```
+
+There's a low count of missing values and they seem to all be concentrated in the latitude & longitude data - let's get rid of those rows altogether.
+
+```{r dropping missing values}
+
+data_no_na <- na.omit(merged_data)
+
+original_len <- nrow(merged_data)
+no_na_len <- nrow(data_no_na)
+na_diff <- original_len - no_na_len
+
+print(paste("Removed", na_diff, "null rows."))
+print(paste("That represented", na_diff/original_len * 100, "percent of the data"))
+
+```
+
+Each ride has a distinct ride_id. If there are any duplicates for any of the data points, this is the most likely way to identify those duplicates.
+
+```{r checking for and removing duplicates}
+
+data_no_duplicates <- data_no_na[!duplicated(data_no_na$ride_id), ]
+
+no_dups_len <- nrow((data_no_duplicates))
+no_dups_diff <- no_na_len - no_dups_len
+
+print(paste("Removed", no_dups_diff, "duplicated rows"))
+print(paste("This represents another", no_dups_diff / original_len * 100, "percent of the original dataset"))
+
+```
+
+I noticed the date columns were of the type 'character.' If we are going to glean any information from them we'll need to convert them to datetime format and parse through them that way.
+
+```{r manipulating datetime data}
+
+data_no_duplicates$started_at <- as.POSIXct(data_no_duplicates$started_at, "%Y-%m-%d %H:%M:%S")
+
+data_no_duplicates$ended_at <- as.POSIXct(data_no_duplicates$ended_at, "%Y-%m-%d %H:%M:%S")
+
+```
+
+## **Process**
+
+I think this is a good place to begin manipulating the data to add and subtract needed and unnecessary data points.
+
+We have a start time and end time, but the information we really want is the length of the ride. So we'll do some simple maths and add a column for that data.
+
+```{r adding ride_length}
+
+data_no_duplicates <- data_no_duplicates %>% mutate(ride_length = as.numeric(data_no_duplicates$ended_at - data_no_duplicates$started_at)/60)
+
+summary(data_no_duplicates$ride_length)
+
+```
+
+We can see some very interesting things about this ride_length data - we have a very large negative value for the minimum as well as a very large positive value for the maximum (almost 39 days long). Let's see about getting rid of some outliers.
+
+```{r determine outliers}
+tiles = quantile(data_no_duplicates$ride_length, seq(0, 1, by=0.02))
+print(tiles)
+```
+0-100% Range -> 84,994 minutes
+4-96% Range -> 62 minutes
+
+I think we can limit our data to the middle 92% of the data and drop the outliers.
+
+```{r outlier handling}
+data_no_outliers <- data_no_duplicates %>% 
+    filter(ride_length > as.numeric(tiles['4%'])) %>%
+    filter(ride_length < as.numeric(tiles['96%']))
+
+print(paste("Removed", nrow(data_no_duplicates) - nrow(data_no_outliers), "rows as outliners" ))
+```
+We have the date and time data, but there may be some information we can glean from the day of the week. Let's add that to our new set of data with the outliers removed.
+```{r day of the week}
+
+data_no_outliers <- data_no_outliers %>% mutate(start_day = weekdays(as.Date(data_no_outliers$started_at)))
+
+```
+
+
+Let's separate the day from what we'll call year_month. We'll keep year & month paired together because we have two of some months. We don't want them to be added together into a single month possibly skewing our analysis.
+
+```{r separating datetime data}
+
+data_no_outliers <- data_no_outliers %>%
+    mutate(year_month = paste(strftime(data_no_outliers$started_at,"%Y"),
+                              "-", strftime(data_no_outliers$started_at,
+                              "%m"),
+                              paste("(",
+                              strftime(data_no_outliers$started_at,"%b"),
+                              ")",sep="")))
+
+data_no_outliers <- data_no_outliers %>% mutate(day = day(as.Date(data_no_outliers$started_at)))
+
+```
+
+Another time-related piece of information I feel might be insightful is the hour of the day they began their ride. Let's get that information into it's own column as well.
+
+```{r hour data}
+
+data_no_outliers <- data_no_outliers %>% mutate(hour_start = hour(data_no_outliers$started_at))
+
+```
+
+I feel like we've cleaned the data up and added all the additional columns we'll need to start analyzing. Before we get started let's save the data as we have it so if this Rmd file is lost, we have a csv file to start the analysis with.
+
+```{r export data}
+
+data <- data_no_outliers
+
+write.csv(data, paste(filedir, "data_cleaned.csv", sep=""))
+
+```
+
+## **Analyze**
+
+### **General Breakdown**
+
+Let's see what the distribution of the data looks like between members and casual riders.
+
+```{r member_casual}
+
+data %>% group_by(member_casual) %>% summarise(count=length(ride_id), '%' = (length(ride_id) / nrow(data)) * 100)
+
+```
+
+So the makeup of customers is 44% casual riders and 56% members
+There are 27% more members than casual riders by sheer count.
+
+### **Ride Length & Type**
+
+One of the possible differences could be in the way casual riders use the service vs members.
+Let's take a look at the ride length and bike types to see if there is information there.
+
+```{r ride_length numbers}
+
+data %>% 
+    group_by(member_casual) %>% 
+    summarise(mean = mean(ride_length),
+              'Q1' = as.numeric(quantile(ride_length, .25)),
+              'median' = median(ride_length),
+              'Q3' = as.numeric(quantile(ride_length, .75)),
+              'IR' = Q3 - Q1)
+
+```
+
+It looks like members tend to utilize
+```{r ride_length boxplot}
+
+ggplot(data, aes(x=member_casual, y=ride_length, fill=member_casual)) +
+    labs(x="Member/Casual", y="Riding time", title="Boxplot of Ride Length by Member/Casual") +
+    geom_boxplot() +
+    scale_fill_brewer(palette="Set2")
+
+```
+
+We can kind of see that casual riders seem to have longer rides compared members.
+
+Looking at the box plot is good and all, but I like hard numbers. Let's do some maths. A simple 2-Sample t-test should tell us with a bit more certainty if the means of these two groups are equal or not. The null hypothesis is that the means are equal and if the p-value is greater than the significance level (typically 0.05) means that we would fail to reject the null hypothesis. If the p-value is smaller, we reject the null hypothesis and can say that the means are NOT equal.
+
+```{r ride_length t-test}
+
+members <- data %>%
+  filter(data$member_casual=='member')
+
+causals <- data %>%
+  filter(data$member_casual=='casual')
+
+t.test(members$ride_length, causals$ride_length)
+
+```
+Since the p-value is so small we can safely say, based on statistics, that the mean ride length of members is different from casual riders.
+
+Let's see how their ride times differ throughout the week next.
+
+```{r ride_length by day}
+
+ggplot(data, aes(x=start_day, y=ride_length, fill=member_casual, cex.axis=0.25)) +
+    geom_boxplot() +
+    facet_wrap(~ member_casual) +
+    labs(x="Weekday", y="Riding time", title="Riding Lenth by Day") +
+    scale_fill_brewer(palette="Set2") +
+    coord_flip() # I tried normal axes and the labels overlapped
+
+```
+
+Okay, we can see that casual riders have a bit of an increase in ride time on the weekend, while members are more consistent.
+
+```{r rideable_type chart}
+
+data %>%
+  ggplot(aes(rideable_type, fill=member_casual)) +
+    geom_bar() +
+    labs(x="Bike Type", title="Distribution by Rideable Type") +
+    scale_fill_brewer(palette="Set2")
+
+```
+
+Interesting. Let's see the hard numbers.
+
+```{r rideable_type numbers}
+
+data %>%
+    group_by(rideable_type) %>%
+    summarise(count = length(ride_id),
+              '%' = (length(ride_id) / nrow(data)) * 100,
+              'members_percent' = (sum(member_casual == "member") / length(ride_id)) * 100,
+              'casual_percent' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+              'Difference' = members_percent - casual_percent)
+
+```
+
+It appears that casual riders use the classic bike option significantly more than any of the other options.
+
+### **Time Distribution**
+
+Let's take a look at the breakdown by year_month
+
+```{r year_month breakdown - graph}
+
+data %>%
+  ggplot(aes(year_month, fill=member_casual)) +
+    geom_bar() +
+    labs(x="Month", title="Distribution by Year-Month") +
+    scale_fill_brewer(palette="Set2") +
+    coord_flip() # I tried normal axes and the labels overlapped
+
+```
+
+The graph looks pretty, but lets see what the actual numbers look like so we can compare them
+
+```{r year_month breakdown}
+
+data %>%
+    group_by(year_month) %>%
+    summarise(count = length(ride_id),
+              '%' = (length(ride_id) / nrow(data)) * 100,
+              'members_percent' = (sum(member_casual == "member") / length(ride_id)) * 100,
+              'casual_percent' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+              'Difference' = members_percent - casual_percent)
+
+```
+It would seem the usage follows a seasonal pattern.
+We can also see how drastically the change in the casual rider usage changes with the seasons
+
+Let's take a look at the breakdown by day
+
+```{r daily breakdown}
+
+data %>%
+    group_by(start_day) %>%
+    summarise(count = length(ride_id),
+              '%' = (length(ride_id) / nrow(data)) * 100,
+              'members_percent' = (sum(member_casual == "member") / length(ride_id)) * 100,
+              'casual_percent' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+              'Difference' = members_percent - casual_percent)
+
+```
+
+We can see a slight increase on the weekend (Friday-Sunday).
+In fact, we can see that casual riders overtake members on both Saturday and Sunday
+Otherwise, there's a consistent difference throughout the week.
+
+Now I'm wondering how the data breaks down within the hour of the day. Let's take a look
+
+```{r start time graph}
+
+data %>%
+    ggplot(aes(hour_start, fill=member_casual)) +
+    labs(x="Hour of the day", title="Distribution by Hour") +
+    geom_bar() + scale_fill_brewer(palette="Set2")
+
+```
+
+Looking at the graph it looks like there's a significant peak in the afternoon from 3-6 and a less significant peak from 12-7
+
+## **Share**
+
+### **Quick Summary of Findings**
+
+- Members make up the majority of users - 27% more than casual riders
+- Bike usage spikes during warmer months and dips during colder months
+- Casual riders overtake the number of members riding on the weekend
+- Causal riders also increase their ride time on the weekends, while members stay consistent
+- There's a spike in riding in the afternoons
+- Classic bikes are the preferred type of bike
+
+### **What Can We Conclude?**
+
+- Members are using bikes for more consistent things (work and/or exercise)
+- Weekends are likely for recreational use & moreso by casual riders
+- Temperature is a significant driver of usage
+
+## **Act**
+
+Based on all of our findings and the overall conclusions I would recommend the following 3 steps to encourage casual riders to become members:
+
+1. Ad campaign and special offers for members using bikes for commuting.
+2. Ad campaign and special offers or benefits for members on the weekend.
+3. Special offers during the colder months for members.
+
+
+
+
