@@ -3,7 +3,7 @@
 }
 
 .banner {
-    background-image: url('pattern.jpeg');
+    background-image: url('../img/pattern.jpeg');
     text-align: center;
     font-size: 100px;
     font-weight: bold;
