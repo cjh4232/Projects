@@ -15,14 +15,14 @@ class HTMLDocReader():
 
     The get_data() function is called on the new object and a Pandas DataFrame is returned
 
-    In this version the data of interest was both the sagittal & tangential  MTF 
+    In this version the data of interest was both the sagittal & tangential  MTF
     values @ 200 lp/mm
     """
 
     def __init__(self, root_dir) -> None:
         self.root_dir = root_dir
 
-    def __get_list(self) -> List:
+    def get_list(self) -> List:
 
         """
         This function acquires a list of all the files in the root directory with the file type
@@ -60,7 +60,7 @@ class HTMLDocReader():
             return file_name[-6]
         return file_name[-7:-5]
 
-    def __read_html_nltk(self, file_name, freq):
+    def __read_html_nltk(self, file_name, freq) -> List:
         """
         This function uses the Natural Language Tool Kit to parse the html document, find the lp/mm
         value of interest (in this case, 200) and then retrieve the data points associated with that
@@ -105,34 +105,36 @@ class HTMLDocReader():
         data = self.__read_html_nltk(file_name, freq)
         return data[0]
 
-    def get_data(self, freq):
+    def get_data(self, freq) -> pd.DataFrame:
         """
         This function uses all of the built-in class functions to build multiple lists of
         data and returns them zipped together into a Pandas DataFrame.
 
-        This is the only function that should be called using the HTML_Document_Reader class.
+        This is the only function that should be called using the HTML_Document_Reader class
+        and takes one input - the frequency of interest.
         """
         # Create empty lists to store upcoming data
         serial_numbers = []
         locations = []
         saggital_values = []
         tangential_values = []
-        
+
         # Create a list of column names - the order matters
         column_names = ["SN", "Location", "Sagittal", "Tangential"]
-        
-        # Creates list of files in root directory of html file type
-        file_list = self.__get_list()
 
-        # Iterate through each file and add all of the information from the file to 
+        # Creates list of files in root directory of html file type
+        file_list = self.get_list()
+
+        # Iterate through each file and add all of the information from the file to
         # the corresponding list using the class functions
         for file in file_list:
             serial_numbers.append(self.__get_sn(file))
             locations.append(self.__get_loc(file))
             saggital_values.append(self.__get_sag(file, freq))
             tangential_values.append(self.__get_tan(file, freq))
-        
+
         # Create a pandas DataFrame from the zipped lists and column names
-        dataframe = pd.DataFrame(zip(serial_numbers, locations, saggital_values, tangential_values), columns=column_names)
-        
+        dataframe = pd.DataFrame(zip(serial_numbers, locations, saggital_values,
+                                    tangential_values), columns=column_names)
+
         return dataframe
