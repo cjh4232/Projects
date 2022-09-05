@@ -1,10 +1,22 @@
+"""
+This code represents the analysis of data as part of a class.
+
+There is a lot of functional programming here with a lot of lines commented out
+"""
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
-# load and investigate the data here:
-df = pd.read_csv('tennis_stats.csv')
+cwd = os.getcwd()
+
+DIR = "/Projects/Python/Tennis_Ace_ML/tennis_stats.csv"
+
+file_name = cwd + DIR
+
+# Load and investigate the data here:
+df = pd.read_csv(file_name)
 
 # perform exploratory analysis here:
 #print(df.columns)
@@ -36,35 +48,69 @@ df = pd.read_csv('tennis_stats.csv')
 
 ## perform single feature linear regressions here:
 
-X1 = df[['TotalPointsWon']] # choosing the easiest feature - total points won
-y1 = df[['Wins']] # to predict wins
+def feature_linear_regression(data_df: pd.DataFrame, x_list: list, y_list: list) -> None:
+        """
+        This funciton takes in a Pandas DataFrame (df), a list of column names or features
+        (x_list), and a target (y).
 
-# Instantiate a linear regression object for single variable
-s_lin = LinearRegression()
+        The features and and targets are split into training and testing data and used to
+        create a linear regression.
+        """
+        
+        x_features = data_df[[x_list]]
+        y_targets = data_df[[y_list]]
 
-# Split the data into sections to train the model (80%) and test the model (20%)
-x_train, x_test, y_train, y_test = train_test_split(X1, y1, test_size=0.2, random_state=3)
+        lin = LinearRegression()
 
-# Fit a model to the training data and save it
-single_model = s_lin.fit(x_train, y_train)
+        x_train, x_test, y_train, y_test = train_test_split(x_features, y_targets, test_size=0.2, random_state=3)
 
-# Make some predictions based on the test x data
-win_predict = s_lin.predict(x_test)
+        model = lin.fit(x_train, y_train)
 
-# Print out the results
-print('Coefficients')
-print(s_lin.coef_)
+        predictions = model.predict(x_test)
 
-print("Train score:")
-print(s_lin.score(x_train, y_train))
+        print('Coefficients')
+        print(lin.coef_)
 
-print("Test score:")
-print(s_lin.score(x_test, y_test))
+        print("Train score:")
+        print(lin.score(x_train, y_train))
 
-fig1 = plt.figure()
-plt.scatter(y_test, win_predict)
-plt.show()
-plt.close()
+        print("Test score:")
+        print(lin.score(x_test, y_test))
+
+        fig1 = plt.figure()
+        plt.scatter(y_test, predictions)
+        plt.show()
+        plt.close()
+
+# X1 = df[['TotalPointsWon']] # choosing the easiest feature - total points won
+# y1 = df[['Wins']] # to predict wins
+
+# # Instantiate a linear regression object for single variable
+# s_lin = LinearRegression()
+
+# # Split the data into sections to train the model (80%) and test the model (20%)
+# x_train, x_test, y_train, y_test = train_test_split(X1, y1, test_size=0.2, random_state=3)
+
+# # Fit a model to the training data and save it
+# single_model = s_lin.fit(x_train, y_train)
+
+# # Make some predictions based on the test x data
+# win_predict = s_lin.predict(x_test)
+
+# # Print out the results
+# print('Coefficients')
+# print(s_lin.coef_)
+
+# print("Train score:")
+# print(s_lin.score(x_train, y_train))
+
+# print("Test score:")
+# print(s_lin.score(x_test, y_test))
+
+# fig1 = plt.figure()
+# plt.scatter(y_test, win_predict)
+# plt.show()
+# plt.close()
 
 ######### perform two feature linear regressions here ############
 
