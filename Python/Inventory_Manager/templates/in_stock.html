@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <title>In Stock</title>
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="center-align">In Stock</h1>
+        
+        <h3 class="center-align">Parts</h3>
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th>Part Number</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in parts %}
+                <tr>
+                    <td>{{ part[0] }}</td>
+                    <td>{{ part[1] }}</td>
+                    <td>{{ part[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <h3 class="center-align">Assemblies</h3>
+        <table class="striped">
+            <thead>
+                <tr>
+                    <th>Assembly Number</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assembly in assemblies %}
+                <tr>
+                    <td>{{ assembly[0] }}</td>
+                    <td>{{ assembly[1] }}</td>
+                    <td>{{ assembly[2] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <a class="btn waves-effect waves-light" href="{{ url_for('add_assembly_to_inventory') }}">Add Assembly to Inventory</a>
+
+    </div>
+</body>
+</html>

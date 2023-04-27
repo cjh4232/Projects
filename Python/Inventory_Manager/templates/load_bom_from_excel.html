@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head>
+    <title>Load Bill of Materials from Excel</title>
+</head>
+<body>
+    <h1>Load Bill of Materials from Excel</h1>
+    <form method="post" enctype="multipart/form-data">
+        <label>Assembly ID: <input type="text" name="assembly_id"></label><br>
+        <label>File: <input type="file" name="file"></label><br>
+        <input type="submit" value="Load Bill of Materials from Excel">
+    </form>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+    <title>Create Item</title>
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="center-align">Create Item</h1>
+        {% if error %}
+        <div class="card-panel red lighten-1 white-text">{{ error }}</div>
+        {% endif %}
+        <form action="{{ url_for('create_item') }}" method="post">
+            <div class="input-field">
+                <input type="text" id="item_id" name="item_id" required>
+                <label for="item_id">Item ID</label>
+            </div>
+            <div class="input-field">
+                <input type="text" id="description" name="description" required>
+                <label for="description">Description</label>
+            </div>
+            <div class="input-field">
+                <input type="number" id="quantity" name="quantity" required>
+                <label for="quantity">Quantity</label>
+            </div>
+            <p>
+                <label>
+                    <input name="item_type" type="radio" value="part" checked />
+                    <span>Part</span>
+                </label>
+            </p>
+            <p>
+                <label>
+                    <input name="item_type" type="radio" value="assembly" />
+                    <span>Assembly</span>
+                </label>
+            </p>
+            <button class="btn waves-effect waves-light" type="submit">Create
+                <i class="material-icons right">send</i>
+            </button>
+        </form>
+    </div>
+</body>
+</html>

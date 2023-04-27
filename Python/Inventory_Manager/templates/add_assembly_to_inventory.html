@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+    <title>Add Assembly to Inventory</title>
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="center-align">Add Assembly to Inventory</h1>
+        {% if error %}
+        <div class="card-panel red lighten-1 white-text">{{ error }}</div>
+        {% endif %}
+        <form action="{{ url_for('add_assembly_to_inventory') }}" method="post">
+            <div class="input-field">
+                <input type="text" id="assembly_id" name="assembly_id" required>
+                <label for="assembly_id">Assembly Number</label>
+            </div>
+            <div class="input-field">
+                <input type="number" id="quantity" name="quantity" required>
+                <label for="quantity">Quantity</label>
+            </div>
+            <button class="btn waves-effect waves-light" type="submit">Add
+                <i class="material-icons right">send</i>
+            </button>
+        </form>
+    </div>
+</body>
+</html>

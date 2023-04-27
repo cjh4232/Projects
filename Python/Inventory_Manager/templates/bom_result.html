@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <title>Bill of Materials Results</title>
+</head>
+<body>
+    <h1>Bill of Materials Results for Assembly ID: {{ assembly_id }}</h1>
+    <h2>Top-Level Bill of Materials</h2>
+    <table>
+        <tr>
+            <th style="text-align: center">Part ID</th>
+            <th style="text-align: center">Description</th>
+            <th style="text-align: center">Required Quantity</th>
+            <th style="text-align: center">In Stock</th>
+        </tr>
+        {% for row in top_level_bom %}
+        <tr>
+            {% for cell in row %}
+            <td style="text-align: center">{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Detailed Bill of Materials</h2>
+    <table>
+        <tr>
+            <th style="text-align: center">Part ID</th>
+            <th style="text-align: center">Description</th>
+            <th style="text-align: center">Total Required</th>
+            <th style="text-align: center">In Stock</th>
+        </tr>
+        {% for row in detailed_bom %}
+        <tr>
+            {% for cell in row %}
+            <td style="text-align: center">{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

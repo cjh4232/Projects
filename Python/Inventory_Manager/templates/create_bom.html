@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+    <title>Create Bill of Materials</title>
+</head>
+<body>
+    <h1>Create Bill of Materials</h1>
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+        <label>Assembly ID: <input type="text" name="assembly_id"></label><br>
+        {% for i in range(1, 6) %}
+            <label>Part ID {{ i }}: <input type="text" name="part_id{{ i }}"></label>
+            <label>Quantity {{ i }}: <input type="number" name="quantity{{ i }}"></label><br>
+        {% endfor %}
+        <input type="submit" value="Create Bill of Materials">
+    </form>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

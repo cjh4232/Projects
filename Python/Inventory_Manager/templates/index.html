@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+    <title>Inventory Management</title>
+</head>
+<body>
+    <h1>Inventory Management</h1>
+    <ul>
+        <li><a href="{{ url_for('create_item') }}">Create/Add Part</a></li>
+        <li><a href="{{ url_for('create_bom') }}">Create Bill of Materials</a></li>
+        <li><a href="{{ url_for('load_bom_from_excel') }}">Load Bill of Materials from Excel</a></li>
+        <li><a href="{{ url_for('view_bom') }}">View Bill of Materials</a></li>
+        <li> <a href="{{ url_for('in_stock') }}">View Parts In Stock</a></li>
+    </ul>
+</body>
+</html>
+
