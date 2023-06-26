@@ -1,17 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for
+'''
+docstring stuff
+'''
 import sqlite3
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
 def create_tables():
+    """Creates the inventory database & tables if not already existing"""
+
     conn = sqlite3.connect('inventory.db')
     cur = conn.cursor()
     cur.execute('''
         CREATE TABLE IF NOT EXISTS items (
             id TEXT PRIMARY KEY NOT NULL,
-            type TEXT NOT NULL,
             description TEXT,
-            quantity INTEGER DEFAULT 0
+            quantity INTEGER DEFAULT 0,
+            type TEXT NOT NULL
+            
         )
     ''')
     cur.execute('''
@@ -28,10 +34,12 @@ def create_tables():
 
 @app.route('/')
 def index():
+    '''Render the index.html route'''
     return render_template('index.html')
 
 @app.route('/create_item', methods=['GET', 'POST'])
 def create_item():
+    '''Render the create_item.html route'''
     if request.method == 'POST':
         item_id = request.form['item_id']
         item_type = request.form['item_type']
@@ -40,7 +48,7 @@ def create_item():
 
         conn = sqlite3.connect('inventory.db')
         cur = conn.cursor()
-        cur.execute('INSERT INTO items (id, type, description, quantity) VALUES (?, ?, ?, ?)', (item_id, item_type, description, quantity))
+        cur.execute('INSERT INTO items (id, description, quantity, type) VALUES (?, ?, ?, ?)', (item_id, description, quantity, item_type))
         conn.commit()
         conn.close()
 
@@ -49,9 +57,11 @@ def create_item():
 
 @app.route('/create_bom', methods=['GET', 'POST'])
 def create_bom():
+    '''Render the create_bom.html route'''
     error = None
     if request.method == 'POST':
         assembly_id = request.form['assembly_id']
+        description = request.form['description']
 
         conn = sqlite3.connect('inventory.db')
         cur = conn.cursor()
@@ -61,7 +71,7 @@ def create_bom():
         if existing_assembly:
             error = f'Assembly ID {assembly_id} already exists. Please use a different ID.'
         else:
-            cur.execute('INSERT INTO items (id, type) VALUES (?, "assembly")', (assembly_id,))
+            cur.execute('INSERT INTO items (id, description, type) VALUES (?, ?, "assembly")', (assembly_id, description))
             conn.commit()
 
             for i in range(1, 6):
@@ -81,6 +91,7 @@ def create_bom():
 
 @app.route('/load_bom_from_excel', methods=['GET', 'POST'])
 def load_bom_from_excel():
+    '''Render the load_bom_from_excel.html route'''
     if request.method == 'POST':
         # Implement the functionality to load BOM from Excel
         pass
@@ -88,6 +99,7 @@ def load_bom_from_excel():
 
 @app.route('/view_bom', methods=['GET', 'POST'])
 def view_bom():
+    '''Renderthe viw_bom.html route'''
     if request.method == 'POST':
         assembly_id = request.form['assembly_id']
 
@@ -115,6 +127,7 @@ def view_bom():
 
 @app.route('/in_stock')
 def in_stock():
+    '''Render in_stock.html route'''
     conn = sqlite3.connect('inventory.db')
     cur = conn.cursor()
     cur.execute('SELECT * FROM items')
@@ -123,6 +136,7 @@ def in_stock():
 
 @app.route('/add_assembly_to_inventory', methods=['GET', 'POST'])
 def add_assembly_to_inventory():
+    '''Rednder add_assemlby_to_inventory.html route'''
     if request.method == 'POST':
         assembly_id = request.form['assembly_id']
         quantity = int(request.form['quantity'])
@@ -156,4 +170,3 @@ def add_assembly_to_inventory():
 if __name__ == '__main__':
     create_tables()
     app.run(debug=True)
-

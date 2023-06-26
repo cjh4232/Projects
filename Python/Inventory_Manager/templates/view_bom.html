@@ -1,15 +1,24 @@
 <!doctype html>
 <html>
 <head>
-    <title>View Bill of Materials</title>
-
+    <title>View BOM</title>
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Materialize JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </head>
 <body>
-    <h1>View Bill of Materials</h1>
-    <form method="post">
-        <label>Assembly ID: <input type="text" name="assembly_id"></label><br>
-        <input type="submit" value="View Bill of Materials">
-    </form>
-    <a href="{{ url_for('index') }}">Back to Home</a>
+    <div class="container">
+        <h1 class="center-align">View Bill of Materials</h1>
+        <form action="{{ url_for('view_bom') }}" method="post">
+            <div class="input-field">
+                <input type="text" id="assembly_id" name="assembly_id" required>
+                <label for="assembly_id">Assembly Number</label>
+            </div>
+            <button class="btn waves-effect waves-light" type="submit">View
+                <i class="material-icons right">search</i>
+            </button>
+        </form>
+    </div>
 </body>
 </html>
