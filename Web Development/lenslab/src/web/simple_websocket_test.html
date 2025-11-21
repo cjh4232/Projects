@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <button id="connectBtn">Connect to WebSocket</button>
+    <button id="sendBtn" disabled>Send Message</button>
+    <div id="status"></div>
+    <div id="messages"></div>
+
+    <script>
+        let socket;
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        const connectBtn = document.getElementById('connectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+
+        connectBtn.addEventListener('click', () => {
+            statusDiv.innerHTML = 'Attempting to connect...';
+            socket = new WebSocket('wss://774c-2605-9480-118-2010-149d-c4ee-5014-44f8.ngrok-free.app');
+
+            socket.onopen = function(e) {
+                statusDiv.innerHTML = 'Connected to WebSocket';
+                connectBtn.disabled = true;
+                sendBtn.disabled = false;
+                console.log("WebSocket connection established");
+            };
+
+            socket.onmessage = function(event) {
+                messagesDiv.innerHTML += '<p>Received: ' + event.data + '</p>';
+                console.log("Message received:", event.data);
+            };
+
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    statusDiv.innerHTML = `Closed cleanly, code=${event.code} reason=${event.reason}`;
+                } else {
+                    statusDiv.innerHTML = `Connection died: code=${event.code}`;
+                }
+                connectBtn.disabled = false;
+                sendBtn.disabled = true;
+                console.log("WebSocket connection closed", event);
+            };
+
+            socket.onerror = function(error) {
+                statusDiv.innerHTML = `Error: ${error.message || 'Unknown error'}`;
+                console.error("WebSocket error observed:", error);
+            };
+        });
+
+        sendBtn.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send('Hello, server!');
+                messagesDiv.innerHTML += '<p>Sent: Hello, server!</p>';
+                console.log("Message sent: Hello, server!");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 WebAssembly-Only MTF Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        h1 {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #e8f5e8; color: #2e7d32; }
+        .status.error { background: #ffebee; color: #c62828; }
+        .status.info { background: #e3f2fd; color: #1565c0; }
+        
+        video, canvas {
+            width: 100%;
+            max-width: 640px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        button:disabled { opacity: 0.6; }
+        
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .comparison-card {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 WebAssembly-Only MTF Test</h1>
+        
+        <div class="status info">
+            Since OpenCV.js is having loading issues, let's test our WebAssembly MTF analyzer standalone!
+            <br>This will show us if our core algorithm is working and ready for production.
+        </div>
+        
+        <div id="status" class="status info">Loading WebAssembly module...</div>
+        
+        <div style="position: relative; display: inline-block;">
+            <video id="video" autoplay muted playsinline></video>
+            <div id="roiOverlay" style="position: absolute; top: 25%; left: 33.33%; width: 33.33%; height: 50%; border: 3px solid #ff6b6b; box-sizing: border-box; display: none;">
+                <div style="position: absolute; top: -25px; left: 0; background: rgba(255,107,107,0.9); color: white; padding: 4px 8px; font-size: 12px; border-radius: 3px;">🎯 MTF Target Zone</div>
+            </div>
+            <canvas id="canvas" style="display: none;"></canvas>
+        </div>
+        
+        <div>
+            <button id="startCamera">📹 Start Camera</button>
+            <button id="captureFrame" disabled>📸 Capture Frame</button>
+            <button id="analyzeWasm" disabled>🚀 Analyze with WebAssembly</button>
+        </div>
+        
+        <div class="comparison" id="comparison" style="display: none;">
+            <div class="comparison-card">
+                <h3>Previous Test Results</h3>
+                <div>Edges Found: <strong>5527</strong></div>
+                <div>Valid Lines: <strong>1</strong></div>
+                <div>MTF50: <strong>0.0010</strong></div>
+                <div>Time: <strong>32.9ms</strong></div>
+                <div style="margin-top: 10px; font-size: 14px;">
+                    (From your crosshair test)
+                </div>
+            </div>
+            <div class="comparison-card">
+                <h3>Current Test Results</h3>
+                <div>Edges Found: <strong id="currentEdges">-</strong></div>
+                <div>Valid Lines: <strong id="currentLines">-</strong></div>
+                <div>MTF50: <strong id="currentMTF50">-</strong></div>
+                <div>Time: <strong id="currentTime">-</strong></div>
+                <div style="margin-top: 10px; font-size: 14px;" id="improvement">
+                    Waiting for analysis...
+                </div>
+            </div>
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h3>📊 Detailed Results:</h3>
+            <pre id="rawResults"></pre>
+        </div>
+        
+        <div id="recommendation" style="display: none; margin-top: 20px; padding: 20px; border-radius: 8px;"></div>
+    </div>
+
+    <script src="mtf_analyzer.js"></script>
+    <script>
+        let mtfModule = null;
+        let video, canvas, ctx;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            try {
+                updateStatus('Loading WebAssembly module...', 'info');
+                mtfModule = await MTFAnalyzer();
+                
+                // Test the module
+                const test = mtfModule.MTFAnalyzerWasm.testConnection();
+                console.log('WebAssembly test:', test);
+                
+                updateStatus('✅ WebAssembly MTF analyzer ready!', 'success');
+                document.getElementById('startCamera').disabled = false;
+                
+            } catch (error) {
+                updateStatus(`❌ Failed to load WebAssembly: ${error.message}`, 'error');
+            }
+        });
+        
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    document.getElementById('captureFrame').disabled = false;
+                    document.getElementById('roiOverlay').style.display = 'block';
+                    updateStatus('📹 Camera ready! Position crosshair target in red ROI zone', 'success');
+                };
+                
+            } catch (error) {
+                updateStatus(`Camera error: ${error.message}`, 'error');
+            }
+        }
+        
+        function captureFrame() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'block';
+            document.getElementById('analyzeWasm').disabled = false;
+            updateStatus('📸 Frame captured! Ready for analysis', 'success');
+        }
+        
+        async function analyzeWithWebAssembly() {
+            if (!mtfModule) return;
+            
+            updateStatus('🚀 Analyzing with WebAssembly...', 'info');
+            
+            try {
+                const start = performance.now();
+                
+                // Get image data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const uint8Array = new Uint8Array(imageData.data);
+                
+                // Analyze with our WebAssembly
+                const result = mtfModule.MTFAnalyzerWasm.analyzeImage(
+                    uint8Array, canvas.width, canvas.height
+                );
+                
+                const totalTime = performance.now() - start;
+                
+                // Display results
+                displayResults(result, totalTime);
+                
+                if (result.success) {
+                    updateStatus('✅ WebAssembly analysis completed!', 'success');
+                } else {
+                    updateStatus(`❌ Analysis failed: ${result.error_message}`, 'error');
+                }
+                
+            } catch (error) {
+                updateStatus(`❌ Analysis error: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayResults(result, totalTime) {
+            // Update comparison
+            document.getElementById('currentEdges').textContent = result.edges_found;
+            document.getElementById('currentLines').textContent = result.lines_found;
+            document.getElementById('currentMTF50').textContent = result.mtf50.toFixed(4);
+            document.getElementById('currentTime').textContent = `${totalTime.toFixed(1)}ms`;
+            
+            // Show improvement
+            const edgeImprovement = ((5527 - result.edges_found) / 5527 * 100).toFixed(1);
+            const improvement = result.edges_found < 1000 ? 
+                `🎉 ${edgeImprovement}% fewer edges!` : 
+                `⚠️ Still high edge count`;
+            document.getElementById('improvement').innerHTML = improvement;
+            
+            // Show raw results
+            document.getElementById('rawResults').textContent = JSON.stringify(result, null, 2);
+            
+            // Generate recommendation
+            const rec = generateRecommendation(result, totalTime);
+            document.getElementById('recommendation').innerHTML = rec;
+            
+            // Show sections
+            document.getElementById('comparison').style.display = 'grid';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('recommendation').style.display = 'block';
+        }
+        
+        function generateRecommendation(result, totalTime) {
+            const edgesGood = result.edges_found < 1000;
+            const linesGood = result.lines_found > 0;
+            const speedGood = totalTime < 100;
+            const successful = result.success;
+            
+            if (successful && edgesGood && linesGood && speedGood) {
+                return `
+                    <div style="background: linear-gradient(45deg, #4caf50, #45a049); color: white; padding: 20px; border-radius: 8px;">
+                        <h3>🏆 EXCELLENT RESULTS!</h3>
+                        <p><strong>WebAssembly MTF analysis is production-ready:</strong></p>
+                        <ul>
+                            <li>✅ Clean edge detection (${result.edges_found} edges)</li>
+                            <li>✅ Found ${result.lines_found} valid MTF line(s)</li>
+                            <li>✅ Fast processing (${totalTime.toFixed(1)}ms)</li>
+                            <li>✅ ROI analysis working (${result.roi_width}×${result.roi_height})</li>
+                        </ul>
+                        <p><strong>🚀 Ready for Bubble integration!</strong></p>
+                    </div>
+                `;
+            } else if (successful && linesGood) {
+                return `
+                    <div style="background: linear-gradient(45deg, #ff9800, #f57c00); color: white; padding: 20px; border-radius: 8px;">
+                        <h3>⚠️ GOOD BUT NEEDS OPTIMIZATION</h3>
+                        <p>Core algorithm works but needs refinement:</p>
+                        <ul>
+                            <li>${edgesGood ? '✅' : '⚠️'} Edge detection: ${result.edges_found} edges</li>
+                            <li>✅ Line detection: ${result.lines_found} valid lines</li>
+                            <li>${speedGood ? '✅' : '⚠️'} Speed: ${totalTime.toFixed(1)}ms</li>
+                        </ul>
+                        <p><strong>Recommendation:</strong> Proceed with integration, optimize edge detection later.</p>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div style="background: linear-gradient(45deg, #f44336, #d32f2f); color: white; padding: 20px; border-radius: 8px;">
+                        <h3>❌ NEEDS WORK</h3>
+                        <p>Issues detected: ${result.error_message || 'Algorithm needs debugging'}</p>
+                        <p><strong>Next steps:</strong> Debug edge detection and line filtering.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('captureFrame').addEventListener('click', captureFrame);
+        document.getElementById('analyzeWasm').addEventListener('click', analyzeWithWebAssembly);
+    </script>
+</body>
+</html>
