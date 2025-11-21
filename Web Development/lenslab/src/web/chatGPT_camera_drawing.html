@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rectangle Drawing on Video</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    #video-container {
+      position: relative;
+      display: inline-block;
+    }
+    video {
+      width: 640px;
+      height: 480px;
+    }
+    .rectangle {
+      position: absolute;
+      border: 2px solid red;
+    }
+  </style>
+</head>
+<body>
+
+<div id="video-container">
+  <video id="video" autoplay></video>
+  <div id="rectangle" class="rectangle" style="display: none;"></div>
+</div>
+
+<script>
+  // Access the user's webcam
+  const video = document.getElementById('video');
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then((stream) => {
+      video.srcObject = stream;
+    })
+    .catch((error) => {
+      console.error("Error accessing the camera: ", error);
+    });
+
+  // Variables for rectangle drawing
+  let isDrawing = false;
+  let startX = 0;
+  let startY = 0;
+  const rectangle = document.getElementById('rectangle');
+
+  // Mouse down event (start drawing)
+  video.addEventListener('mousedown', (e) => {
+    const rect = video.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    isDrawing = true;
+    rectangle.style.left = startX + 'px';
+    rectangle.style.top = startY + 'px';
+    rectangle.style.width = '0px';
+    rectangle.style.height = '0px';
+    rectangle.style.display = 'block';
+  });
+
+  // Mouse move event (continue drawing)
+  video.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    const rect = video.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    const width = currentX - startX;
+    const height = currentY - startY;
+
+    // Update rectangle size
+    rectangle.style.width = Math.abs(width) + 'px';
+    rectangle.style.height = Math.abs(height) + 'px';
+
+    // Update rectangle position if drawing backwards (negative width/height)
+    if (width < 0) rectangle.style.left = currentX + 'px';
+    if (height < 0) rectangle.style.top = currentY + 'px';
+  });
+
+  // Mouse up event (finish drawing)
+  video.addEventListener('mouseup', (e) => {
+    isDrawing = false;
+    const rect = rectangle.getBoundingClientRect();
+    const videoRect = video.getBoundingClientRect();
+    
+    // Calculate the final rectangle coordinates relative to the video
+    const finalX = rect.left - videoRect.left;
+    const finalY = rect.top - videoRect.top;
+    const finalWidth = rect.width;
+    const finalHeight = rect.height;
+
+    // Output the top-left corner and dimensions of the rectangle
+    console.log('Top-left corner (x, y):', finalX, finalY);
+    console.log('Width:', finalWidth, 'Height:', finalHeight);
+  });
+</script>
+
+</body>
+</html>

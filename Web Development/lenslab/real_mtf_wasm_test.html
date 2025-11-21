@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real MTF WebAssembly Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.loading { background: #fff3cd; color: #856404; }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        video, canvas {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .primary-btn { background: #007bff; color: white; }
+        .primary-btn:hover:not(:disabled) { background: #0056b3; }
+        .success-btn { background: #28a745; color: white; }
+        .success-btn:hover:not(:disabled) { background: #1e7e34; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+        
+        .metric {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .test-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .test-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .test-value {
+            font-size: 18px;
+            color: #007bff;
+            margin: 5px 0;
+        }
+        
+        .test-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        .test-status.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-status.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 REAL MTF WebAssembly Test</h1>
+        
+        <div id="loadStatus" class="status loading">
+            Loading MTF WebAssembly module...
+        </div>
+        
+        <div class="test-section">
+            <h3>📹 Camera Setup</h3>
+            <div style="position: relative; display: inline-block;">
+                <video id="video" autoplay muted playsinline></video>
+                <div id="roiOverlay" style="position: absolute; top: 25%; left: 33.33%; width: 33.33%; height: 50%; border: 2px solid #ff0000; box-sizing: border-box; display: none;">
+                    <div style="position: absolute; top: -25px; left: 0; background: rgba(255,0,0,0.8); color: white; padding: 2px 8px; font-size: 12px; border-radius: 3px;">MTF Target Area</div>
+                </div>
+            </div>
+            <canvas id="canvas" style="display: none;"></canvas>
+            
+            <div style="margin-top: 15px;">
+                <p style="background: #e9ecef; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 14px;">
+                    📍 <strong>Position your MTF target in the red rectangle</strong> - this ROI will be analyzed (center 50% vertical, 33% horizontal)
+                </p>
+            </div>
+            
+            <div>
+                <button id="startCamera" class="primary-btn">Start Camera</button>
+                <button id="captureFrame" class="success-btn" disabled>Capture Frame</button>
+                <button id="analyzeMTF" class="primary-btn" disabled>Analyze MTF (Real WebAssembly)</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔬 Component Test Results</h3>
+            <div class="test-results">
+                <div class="test-card">
+                    <div class="test-title">Edge Detection Quality</div>
+                    <div class="test-value" id="edgeQualityTest">Not tested</div>
+                    <div class="test-status pending" id="edgeQualityStatus">Pending</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-title">MTF50 Calculation</div>
+                    <div class="test-value" id="mtf50Test">Not tested</div>
+                    <div class="test-status pending" id="mtf50Status">Pending</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-title">Processing Speed</div>
+                    <div class="test-value" id="speedTest">Not tested</div>
+                    <div class="test-status pending" id="speedStatus">Pending</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-title">Memory Efficiency</div>
+                    <div class="test-value" id="memoryTest">Not tested</div>
+                    <div class="test-status pending" id="memoryStatus">Pending</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-title">WebAssembly Status</div>
+                    <div class="test-value" id="wasmTest">Not tested</div>
+                    <div class="test-status pending" id="wasmStatus">Pending</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-title">Overall Feasibility</div>
+                    <div class="test-value" id="feasibilityTest">Not tested</div>
+                    <div class="test-status pending" id="feasibilityStatus">Pending</div>
+                </div>
+            </div>
+            
+            <div id="detailedResults" style="margin-top: 20px; display: none;">
+                <h4>📊 Detailed Analysis Results:</h4>
+                <div class="results" id="analysisDetails"></div>
+            </div>
+            
+            <div id="rawResults" style="margin-top: 20px; display: none;">
+                <h4>🔧 Raw WebAssembly Output:</h4>
+                <pre id="rawData" style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-size: 12px; overflow-x: auto;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let mtfModule = null;
+        let video = null;
+        let canvas = null;
+        let ctx = null;
+        let stream = null;
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        async function initializeApp() {
+            // Get DOM elements
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Load WebAssembly module
+            try {
+                updateStatus('Loading MTF WebAssembly module...', 'loading');
+                
+                // This will load our compiled mtf_analyzer.js
+                mtfModule = await MTFAnalyzer();
+                
+                updateStatus('✅ MTF WebAssembly module loaded successfully!', 'success');
+                enableUI();
+                
+            } catch (error) {
+                updateStatus(`❌ Failed to load WebAssembly module: ${error.message}`, 'error');
+                console.error('WebAssembly loading error:', error);
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('loadStatus');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function enableUI() {
+            document.getElementById('startCamera').disabled = false;
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    document.getElementById('captureFrame').disabled = false;
+                    document.getElementById('roiOverlay').style.display = 'block';
+                    updateStatus('Camera ready! Position MTF target in red ROI and capture.', 'success');
+                };
+                
+            } catch (error) {
+                updateStatus(`Camera error: ${error.message}`, 'error');
+            }
+        }
+        
+        function captureFrame() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'block';
+            document.getElementById('analyzeMTF').disabled = false;
+            updateStatus('Frame captured! Ready for MTF analysis.', 'info');
+        }
+        
+        // THE REAL TEST: Analyze using actual compiled WebAssembly
+        async function analyzeMTF() {
+            if (!mtfModule) {
+                updateStatus('WebAssembly module not loaded!', 'error');
+                return;
+            }
+            
+            try {
+                updateStatus('Running REAL MTF analysis with WebAssembly...', 'loading');
+                
+                const startTime = performance.now();
+                
+                // Get image data from canvas
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Convert to Uint8Array for WebAssembly
+                const uint8Array = new Uint8Array(imageData.data);
+                
+                // Call our REAL MTF analyzer WebAssembly function
+                const result = mtfModule.MTFAnalyzerWasm.analyzeImage(
+                    uint8Array, 
+                    canvas.width, 
+                    canvas.height
+                );
+                
+                const processingTime = performance.now() - startTime;
+                
+                // Display results
+                displayResults(result, processingTime);
+                
+                if (result.success) {
+                    updateStatus('✅ Real MTF analysis completed successfully!', 'success');
+                } else {
+                    updateStatus(`❌ MTF analysis failed: ${result.error_message}`, 'error');
+                }
+                
+            } catch (error) {
+                updateStatus(`❌ WebAssembly execution error: ${error.message}`, 'error');
+                console.error('MTF analysis error:', error);
+            }
+        }
+        
+        // Update test result helper
+        function updateTestResult(testId, value, statusType) {
+            document.getElementById(testId).textContent = value;
+            const statusEl = document.getElementById(testId.replace('Test', 'Status'));
+            statusEl.textContent = statusType === 'pass' ? 'PASS' : statusType === 'fail' ? 'FAIL' : 'PENDING';
+            statusEl.className = `test-status ${statusType}`;
+        }
+
+        function displayResults(result, processingTime) {
+            const memoryUsage = performance.memory ? performance.memory.usedJSHeapSize / 1024 / 1024 : 0;
+            
+            // Analyze edge detection quality
+            const edgeQuality = analyzeEdgeQuality(result);
+            updateTestResult('edgeQualityTest', edgeQuality.description, edgeQuality.status);
+            
+            // Analyze MTF50 calculation
+            const mtf50Quality = analyzeMTF50Quality(result.mtf50);
+            updateTestResult('mtf50Test', mtf50Quality.description, mtf50Quality.status);
+            
+            // Analyze processing speed
+            const speedQuality = analyzeSpeed(processingTime);
+            updateTestResult('speedTest', speedQuality.description, speedQuality.status);
+            
+            // Analyze memory efficiency
+            const memoryQuality = analyzeMemory(memoryUsage);
+            updateTestResult('memoryTest', memoryQuality.description, memoryQuality.status);
+            
+            // WebAssembly status
+            const wasmStatus = result.success ? 'FUNCTIONAL' : 'FAILED';
+            updateTestResult('wasmTest', wasmStatus, result.success ? 'pass' : 'fail');
+            
+            // Overall feasibility
+            const overallFeasibility = calculateOverallFeasibility(result, processingTime, memoryUsage);
+            updateTestResult('feasibilityTest', overallFeasibility.description, overallFeasibility.status);
+            
+            // Show detailed analysis
+            const detailedAnalysis = generateDetailedAnalysis(result, processingTime, memoryUsage, edgeQuality);
+            document.getElementById('analysisDetails').innerHTML = detailedAnalysis;
+            document.getElementById('detailedResults').style.display = 'block';
+            
+            // Show raw data
+            document.getElementById('rawData').textContent = JSON.stringify(result, null, 2);
+            document.getElementById('rawResults').style.display = 'block';
+        }
+        
+        function analyzeEdgeQuality(result) {
+            const edgeCount = result.edges_found;
+            const roiPixels = result.roi_width * result.roi_height;
+            const edgeDensity = edgeCount / roiPixels;
+            const edgePercentage = edgeDensity * 100;
+            
+            // More reasonable thresholds for ROI analysis
+            if (edgeCount > 5000) {
+                return {
+                    description: `${edgeCount} edges in ROI (${edgePercentage.toFixed(1)}% - EXCESSIVE)`,
+                    status: 'fail'
+                };
+            } else if (edgeCount > 1000) {
+                return {
+                    description: `${edgeCount} edges in ROI (${edgePercentage.toFixed(1)}% - HIGH)`,
+                    status: 'fail'
+                };
+            } else if (edgeCount > 100) {
+                return {
+                    description: `${edgeCount} edges in ROI (${edgePercentage.toFixed(1)}% - GOOD)`,
+                    status: 'pass'
+                };
+            } else if (edgeCount > 10) {
+                return {
+                    description: `${edgeCount} edges in ROI (${edgePercentage.toFixed(1)}% - MINIMAL)`,
+                    status: 'pass'
+                };
+            } else {
+                return {
+                    description: `${edgeCount} edges in ROI (${edgePercentage.toFixed(1)}% - INSUFFICIENT)`,
+                    status: 'fail'
+                };
+            }
+        }
+        
+        function analyzeMTF50Quality(mtf50) {
+            if (mtf50 >= 0.001 && mtf50 <= 0.5) {
+                return {
+                    description: `${mtf50.toFixed(4)} cycles/pixel (REASONABLE)`,
+                    status: 'pass'
+                };
+            } else {
+                return {
+                    description: `${mtf50.toFixed(4)} cycles/pixel (SUSPICIOUS)`,
+                    status: 'fail'
+                };
+            }
+        }
+        
+        function analyzeSpeed(processingTime) {
+            if (processingTime < 100) {
+                return {
+                    description: `${processingTime.toFixed(1)}ms (EXCELLENT)`,
+                    status: 'pass'
+                };
+            } else if (processingTime < 500) {
+                return {
+                    description: `${processingTime.toFixed(1)}ms (GOOD)`,
+                    status: 'pass'
+                };
+            } else if (processingTime < 1000) {
+                return {
+                    description: `${processingTime.toFixed(1)}ms (ACCEPTABLE)`,
+                    status: 'pass'
+                };
+            } else {
+                return {
+                    description: `${processingTime.toFixed(1)}ms (TOO SLOW)`,
+                    status: 'fail'
+                };
+            }
+        }
+        
+        function analyzeMemory(memoryMB) {
+            if (memoryMB < 10) {
+                return {
+                    description: `${memoryMB.toFixed(1)}MB (EXCELLENT)`,
+                    status: 'pass'
+                };
+            } else if (memoryMB < 50) {
+                return {
+                    description: `${memoryMB.toFixed(1)}MB (GOOD)`,
+                    status: 'pass'
+                };
+            } else {
+                return {
+                    description: `${memoryMB.toFixed(1)}MB (HIGH)`,
+                    status: 'fail'
+                };
+            }
+        }
+        
+        function calculateOverallFeasibility(result, processingTime, memoryUsage) {
+            const isSuccessful = result.success;
+            const isFastEnough = processingTime < 1000;
+            const isMemoryEfficient = memoryUsage < 50;
+            const hasReasonableEdges = result.edges_found > 10 && result.edges_found < 1000;
+            const hasValidLines = result.lines_found > 0;
+            
+            const score = [isSuccessful, isFastEnough, isMemoryEfficient, hasReasonableEdges, hasValidLines].filter(Boolean).length;
+            
+            if (score >= 4) {
+                return {
+                    description: 'HIGHLY FEASIBLE',
+                    status: 'pass'
+                };
+            } else if (score >= 3) {
+                return {
+                    description: 'POTENTIALLY FEASIBLE',
+                    status: 'pass'
+                };
+            } else {
+                return {
+                    description: 'NOT FEASIBLE',
+                    status: 'fail'
+                };
+            }
+        }
+        
+        function generateDetailedAnalysis(result, processingTime, memoryUsage, edgeQuality) {
+            return `
+                <h5>🎯 Key Findings:</h5>
+                <p><strong>ROI Analysis:</strong> Analyzed ${result.roi_width}×${result.roi_height} pixel ROI (center 50% vertical, 33% horizontal) instead of full ${canvas.width}×${canvas.height} image.</p>
+                
+                <p><strong>Edge Detection:</strong> ${edgeQuality.status === 'pass' ? 
+                    `Found ${result.edges_found} edges in ROI - within expected range for MTF target detection.` :
+                    `${result.edges_found} edges detected - ${result.edges_found < 10 ? 'position MTF target in red ROI area' : 'may indicate noise or complex scene'}.`}</p>
+                
+                <p><strong>Line Detection:</strong> ${result.lines_found > 0 ? 
+                    `Successfully detected ${result.lines_found} valid MTF lines with correct angles (11° or 281°).` :
+                    'No valid MTF lines found - check target orientation and positioning.'}</p>
+                
+                <p><strong>Performance:</strong> Processing time of ${processingTime.toFixed(1)}ms is ${processingTime < 500 ? 'excellent for real-time use' : processingTime < 1000 ? 'acceptable for periodic analysis' : 'too slow for practical use'}.</p>
+                
+                <h5>🔍 Technical Details:</h5>
+                <ul>
+                    <li><strong>ROI Size:</strong> ${result.roi_width}×${result.roi_height} pixels (${((result.roi_width * result.roi_height) / (canvas.width * canvas.height) * 100).toFixed(1)}% of full image)</li>
+                    <li><strong>Edge Pixels:</strong> ${result.edges_found} in ROI (${(result.edges_found / (result.roi_width * result.roi_height) * 100).toFixed(1)}% density)</li>
+                    <li><strong>Valid Lines:</strong> ${result.lines_found} with angles 11°±6° or 281°±6°</li>
+                    <li><strong>MTF50:</strong> ${result.mtf50.toFixed(4)} cycles/pixel</li>
+                    <li><strong>MTF20:</strong> ${result.mtf20.toFixed(4)} cycles/pixel</li>
+                    <li><strong>MTF10:</strong> ${result.mtf10.toFixed(4)} cycles/pixel</li>
+                    <li><strong>FWHM:</strong> ${result.fwhm.toFixed(2)} pixels</li>
+                    <li><strong>Processing Time:</strong> ${result.processing_time_ms}ms (WebAssembly) + ${processingTime.toFixed(1)}ms (JavaScript)</li>
+                </ul>
+                
+                <h5>📋 Next Steps:</h5>
+                ${result.success && result.lines_found > 0 && processingTime < 1000 ? 
+                    '<p>✅ <strong>Proceed with integration:</strong> WebAssembly MTF analysis successfully detected valid lines in ROI. Ready to merge with pixel_lab_brenner.cpp.</p>' :
+                    result.success && result.lines_found === 0 ?
+                    '<p>📍 <strong>Target positioning needed:</strong> Algorithm works but no valid MTF lines found. Position crosshair target in red ROI area.</p>' :
+                    '<p>⚠️ <strong>Address issues first:</strong> Debug edge detection or target positioning before proceeding with integration.</p>'
+                }
+            `;
+        }
+        
+        // Event listeners
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('captureFrame').addEventListener('click', captureFrame);
+        document.getElementById('analyzeMTF').addEventListener('click', analyzeMTF);
+    </script>
+    
+    <!-- Load our compiled WebAssembly module -->
+    <script src="mtf_analyzer.js"></script>
+</body>
+</html>

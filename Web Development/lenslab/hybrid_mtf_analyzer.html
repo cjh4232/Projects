@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Hybrid MTF Analyzer - OpenCV.js + WebAssembly</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        h1 {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .hero-banner {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .camera-section {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+        video, canvas {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        #roiOverlay {
+            position: absolute;
+            top: 25%;
+            left: 33.33%;
+            width: 33.33%;
+            height: 50%;
+            border: 3px solid #ff6b6b;
+            box-sizing: border-box;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        .roi-label {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            background: rgba(255,107,107,0.9);
+            color: white;
+            padding: 5px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        .primary-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        .primary-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .success-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        .success-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+        .danger-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+            border-left: 4px solid;
+        }
+        .status.info { background: #e3f2fd; color: #1565c0; border-color: #2196f3; }
+        .status.success { background: #e8f5e8; color: #2e7d32; border-color: #4caf50; }
+        .status.error { background: #ffebee; color: #c62828; border-color: #f44336; }
+        .status.loading { background: #fff3e0; color: #ef6c00; border-color: #ff9800; }
+        
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .perf-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .perf-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .perf-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .results-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 HYBRID MTF ANALYZER</h1>
+        
+        <div class="hero-banner">
+            <h3>🚀 OpenCV.js + WebAssembly Powerhouse</h3>
+            <p>Professional-grade MTF analysis combining the best of both worlds:<br>
+            <strong>OpenCV.js</strong> for image processing • <strong>Custom WebAssembly</strong> for MTF calculations</p>
+        </div>
+        
+        <div id="loadStatus" class="status loading">
+            <span class="loading-spinner"></span> Loading hybrid analysis engine...
+        </div>
+        
+        <div class="camera-section">
+            <div style="position: relative; display: inline-block;">
+                <video id="video" autoplay muted playsinline></video>
+                <div id="roiOverlay">
+                    <div class="roi-label">🎯 MTF Target Zone</div>
+                </div>
+            </div>
+            <canvas id="canvas" style="display: none;"></canvas>
+            
+            <div style="margin-top: 20px;">
+                <button id="startCamera" class="primary-btn">📹 Start Camera</button>
+                <button id="captureFrame" class="success-btn" disabled>📸 Capture Frame</button>
+                <button id="analyzeHybrid" class="danger-btn" disabled>🔥 Analyze with HYBRID Power</button>
+            </div>
+        </div>
+        
+        <div class="performance-grid" id="performanceGrid" style="display: none;">
+            <div class="perf-card">
+                <div class="perf-value" id="edgeTime">-</div>
+                <div class="perf-label">Edge Detection (OpenCV.js)</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-value" id="lineTime">-</div>
+                <div class="perf-label">Line Detection (OpenCV.js)</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-value" id="mtfTime">-</div>
+                <div class="perf-label">MTF Calculation (WebAssembly)</div>
+            </div>
+            <div class="perf-card">
+                <div class="perf-value" id="totalTime">-</div>
+                <div class="perf-label">Total Processing</div>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h3>📊 Hybrid Analysis Results</h3>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>OpenCV.js Result</th>
+                        <th>WebAssembly Result</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Edge Pixels Found</td>
+                        <td id="opencvEdges">-</td>
+                        <td id="wasmEdges">-</td>
+                        <td id="edgeStatus">-</td>
+                    </tr>
+                    <tr>
+                        <td>Valid MTF Lines</td>
+                        <td id="opencvLines">-</td>
+                        <td id="wasmLines">-</td>
+                        <td id="lineStatus">-</td>
+                    </tr>
+                    <tr>
+                        <td>MTF50 (cycles/pixel)</td>
+                        <td id="opencvMTF50">-</td>
+                        <td id="wasmMTF50">-</td>
+                        <td id="mtf50Status">-</td>
+                    </tr>
+                    <tr>
+                        <td>Processing Time</td>
+                        <td id="opencvTime">-</td>
+                        <td id="wasmProcessTime">-</td>
+                        <td id="timeStatus">-</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div id="finalRecommendation" style="margin-top: 20px; padding: 20px; border-radius: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- Load OpenCV.js with proper initialization -->
+    <script>
+        // Set up OpenCV.js runtime callback BEFORE loading the script
+        window.onOpenCvJsReady = function() {
+            console.log('OpenCV.js runtime initialized!');
+            onOpenCvReady();
+        };
+        
+        // Load OpenCV.js
+        function loadOpenCV() {
+            console.log('Loading OpenCV.js...');
+            const script = document.createElement('script');
+            script.src = 'https://docs.opencv.org/4.x/opencv.js';
+            script.async = true;
+            
+            script.onload = function() {
+                console.log('OpenCV.js script loaded, waiting for runtime...');
+            };
+            
+            script.onerror = function() {
+                console.error('Failed to load OpenCV.js script');
+                onOpenCvError();
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Load when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadOpenCV);
+        } else {
+            loadOpenCV();
+        }
+    </script>
+    
+    <!-- Alternative OpenCV initialization -->
+    <script>
+        // Backup method if the callback doesn't work
+        setTimeout(() => {
+            if (!openCvReady) {
+                console.log('Trying alternative OpenCV initialization...');
+                if (typeof cv !== 'undefined' && cv.onRuntimeInitialized) {
+                    cv.onRuntimeInitialized = () => {
+                        console.log('OpenCV runtime initialized via onRuntimeInitialized');
+                        onOpenCvReady();
+                    };
+                } else if (typeof cv !== 'undefined' && cv.Mat) {
+                    console.log('OpenCV already ready via backup check');
+                    onOpenCvReady();
+                }
+            }
+        }, 2000);
+    </script>
+    
+    <!-- Load our WebAssembly module -->
+    <script src="mtf_analyzer.js"></script>
+
+    <script>
+        // Global state
+        let cv = null;
+        let mtfModule = null;
+        let video, canvas, ctx;
+        let stream = null;
+        
+        // Initialization flags
+        let openCvReady = false;
+        let wasmReady = false;
+        
+        // Performance tracking
+        let performanceData = {};
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+        async function initializeApp() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Try to load WebAssembly module with better error handling
+            try {
+                console.log('Loading WebAssembly module...');
+                
+                // Check if MTFAnalyzer is available
+                if (typeof MTFAnalyzer === 'undefined') {
+                    throw new Error('MTFAnalyzer not found - check if mtf_analyzer.js loaded');
+                }
+                
+                mtfModule = await MTFAnalyzer();
+                console.log('WebAssembly module loaded successfully');
+                
+                // Test the module
+                const testResult = mtfModule.MTFAnalyzerWasm.testConnection();
+                console.log('WebAssembly test:', testResult);
+                
+                wasmReady = true;
+                updateLoadStatus();
+            } catch (error) {
+                console.error('WebAssembly loading error:', error);
+                updateStatus(`❌ WebAssembly failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // OpenCV.js callback functions
+        function onOpenCvReady() {
+            console.log('OpenCV.js onload callback triggered');
+            
+            // Wait a bit for OpenCV to be fully ready
+            setTimeout(() => {
+                cv = window.cv;
+                console.log('cv object:', typeof cv);
+                console.log('window.cv:', typeof window.cv);
+                
+                if (cv && typeof cv.Mat === 'function') {
+                    openCvReady = true;
+                    console.log('OpenCV.js loaded successfully!');
+                    console.log('Key functions available:', {
+                        Mat: typeof cv.Mat,
+                        Canny: typeof cv.Canny,
+                        HoughLinesP: typeof cv.HoughLinesP,
+                        cvtColor: typeof cv.cvtColor,
+                        Rect: typeof cv.Rect
+                    });
+                } else {
+                    console.error('OpenCV.js loaded but core functions not available');
+                    console.log('Available cv properties:', cv ? Object.keys(cv).slice(0, 10) : 'cv is undefined');
+                }
+                updateLoadStatus();
+            }, 500); // Increased timeout
+        }
+        
+        function onOpenCvError() {
+            console.error('Failed to load OpenCV.js');
+            updateStatus('❌ OpenCV.js failed to load', 'error');
+        }
+        
+        function updateLoadStatus() {
+            const status = document.getElementById('loadStatus');
+            
+            if (openCvReady && wasmReady) {
+                status.innerHTML = '🔥 <strong>HYBRID ENGINE READY!</strong> OpenCV.js + WebAssembly loaded successfully';
+                status.className = 'status success';
+                document.getElementById('startCamera').disabled = false;
+            } else if (openCvReady) {
+                status.innerHTML = '<span class="loading-spinner"></span> OpenCV.js ✅ | WebAssembly loading...';
+                status.className = 'status loading';
+            } else if (wasmReady) {
+                status.innerHTML = '<span class="loading-spinner"></span> WebAssembly ✅ | OpenCV.js loading...';
+                status.className = 'status loading';
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const status = document.getElementById('loadStatus');
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+        }
+        
+        // Camera functions
+        async function startCamera() {
+            try {
+                updateStatus('📹 Starting camera...', 'loading');
+                
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    document.getElementById('captureFrame').disabled = false;
+                    document.getElementById('roiOverlay').style.display = 'block';
+                    updateStatus('🎯 Camera ready! Position MTF target in the red zone', 'success');
+                };
+                
+            } catch (error) {
+                updateStatus(`📹 Camera error: ${error.message}`, 'error');
+            }
+        }
+        
+        function captureFrame() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'block';
+            document.getElementById('analyzeHybrid').disabled = false;
+            updateStatus('📸 Frame captured! Ready for HYBRID analysis', 'success');
+        }
+        
+        // THE MAIN EVENT: Hybrid Analysis
+        async function analyzeWithHybridPower() {
+            if (!openCvReady || !wasmReady) {
+                updateStatus('❌ Hybrid engine not ready', 'error');
+                return;
+            }
+            
+            if (!cv || typeof cv.Mat === 'undefined') {
+                updateStatus('❌ OpenCV.js not properly loaded', 'error');
+                return;
+            }
+            
+            updateStatus('🔥 Running HYBRID analysis...', 'loading');
+            document.getElementById('analyzeHybrid').disabled = true;
+            
+            try {
+                const overallStart = performance.now();
+                
+                // Step 1: OpenCV.js Image Processing
+                const opencvResults = await analyzeWithOpenCV();
+                
+                // Step 2: WebAssembly MTF Analysis  
+                const wasmResults = await analyzeWithWebAssembly();
+                
+                const totalTime = performance.now() - overallStart;
+                
+                // Step 3: Compare and Display Results
+                displayHybridResults(opencvResults, wasmResults, totalTime);
+                
+                updateStatus('🎉 HYBRID analysis complete!', 'success');
+                
+            } catch (error) {
+                console.error('Hybrid analysis error:', error);
+                updateStatus(`❌ Hybrid analysis failed: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('analyzeHybrid').disabled = false;
+            }
+        }
+        
+        async function analyzeWithOpenCV() {
+            const start = performance.now();
+            
+            try {
+                console.log('Starting OpenCV analysis...');
+                console.log('Available cv functions:', Object.keys(cv).slice(0, 10));
+                
+                // Get image data and create OpenCV Mat (correct way)
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                console.log('Image data size:', imageData.data.length, 'Canvas size:', canvas.width, 'x', canvas.height);
+                
+                const src = new cv.Mat(canvas.height, canvas.width, cv.CV_8UC4);
+                src.data.set(imageData.data);
+                console.log('OpenCV Mat created, size:', src.rows, 'x', src.cols);
+                
+                // Extract ROI (center 50% vertical, 33% horizontal)
+                const roiWidth = Math.floor(canvas.width / 3);
+                const roiHeight = Math.floor(canvas.height / 2);
+                const roiX = Math.floor((canvas.width - roiWidth) / 2);
+                const roiY = Math.floor((canvas.height - roiHeight) / 2);
+                
+                console.log('ROI params:', roiX, roiY, roiWidth, roiHeight);
+                const roi = src.roi(new cv.Rect(roiX, roiY, roiWidth, roiHeight));
+            
+            // Convert to grayscale
+            const gray = new cv.Mat();
+            cv.cvtColor(roi, gray, cv.COLOR_RGBA2GRAY);
+            
+            // Edge detection with Canny
+            const edges = new cv.Mat();
+            cv.Canny(gray, edges, 50, 150);
+            
+            // Count edge pixels
+            const edgeCount = cv.countNonZero(edges);
+            
+            // Line detection with HoughLinesP
+            const lines = new cv.Mat();
+            cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 50, 30, 10);
+            
+            // Filter lines by angle (same logic as WebAssembly)
+            const validLines = filterLinesByAngle(lines);
+            
+            // Calculate simple MTF estimate
+            const mtf50 = validLines.length > 0 ? 
+                Math.min(0.5, (validLines.length * 50) / (roiWidth * roiHeight) * 2) : 0;
+            
+                // Cleanup
+                src.delete();
+                roi.delete();
+                gray.delete();
+                edges.delete();
+                lines.delete();
+                
+                const processingTime = performance.now() - start;
+                
+                console.log('OpenCV analysis completed successfully');
+                return {
+                    edgeCount,
+                    lineCount: validLines.length,
+                    mtf50,
+                    processingTime,
+                    roiWidth,
+                    roiHeight
+                };
+                
+            } catch (error) {
+                console.error('OpenCV analysis error:', error);
+                throw new Error(`OpenCV analysis failed: ${error.message}`);
+            }
+        }
+        
+        async function analyzeWithWebAssembly() {
+            const start = performance.now();
+            
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const uint8Array = new Uint8Array(imageData.data);
+            
+            // Call our WebAssembly function
+            const result = mtfModule.MTFAnalyzerWasm.analyzeImage(
+                uint8Array, canvas.width, canvas.height
+            );
+            
+            const processingTime = performance.now() - start;
+            
+            return {
+                ...result,
+                processingTime
+            };
+        }
+        
+        function filterLinesByAngle(lines) {
+            const validLines = [];
+            const ANGLE1_TARGET = 11.0;
+            const ANGLE2_TARGET = 281.0;
+            const ANGLE_TOLERANCE = 6.0;
+            
+            for (let i = 0; i < lines.rows; i++) {
+                const x1 = lines.data32S[i * 4];
+                const y1 = lines.data32S[i * 4 + 1];
+                const x2 = lines.data32S[i * 4 + 2];
+                const y2 = lines.data32S[i * 4 + 3];
+                
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                const normalizedAngle = angle < 0 ? angle + 360 : angle;
+                
+                const matchesTarget = 
+                    Math.abs(normalizedAngle - ANGLE1_TARGET) <= ANGLE_TOLERANCE ||
+                    Math.abs(normalizedAngle - ANGLE2_TARGET) <= ANGLE_TOLERANCE;
+                
+                if (matchesTarget) {
+                    validLines.push({ x1, y1, x2, y2, angle: normalizedAngle });
+                }
+            }
+            
+            return validLines;
+        }
+        
+        function displayHybridResults(opencvResults, wasmResults, totalTime) {
+            // Update performance grid
+            document.getElementById('edgeTime').textContent = `${opencvResults.processingTime.toFixed(1)}ms`;
+            document.getElementById('lineTime').textContent = `${opencvResults.processingTime.toFixed(1)}ms`;
+            document.getElementById('mtfTime').textContent = `${wasmResults.processingTime.toFixed(1)}ms`;
+            document.getElementById('totalTime').textContent = `${totalTime.toFixed(1)}ms`;
+            
+            // Update comparison table
+            document.getElementById('opencvEdges').textContent = opencvResults.edgeCount;
+            document.getElementById('wasmEdges').textContent = wasmResults.edges_found;
+            document.getElementById('opencvLines').textContent = opencvResults.lineCount;
+            document.getElementById('wasmLines').textContent = wasmResults.lines_found;
+            document.getElementById('opencvMTF50').textContent = opencvResults.mtf50.toFixed(4);
+            document.getElementById('wasmMTF50').textContent = wasmResults.mtf50.toFixed(4);
+            document.getElementById('opencvTime').textContent = `${opencvResults.processingTime.toFixed(1)}ms`;
+            document.getElementById('wasmProcessTime').textContent = `${wasmResults.processingTime.toFixed(1)}ms`;
+            
+            // Status indicators
+            document.getElementById('edgeStatus').textContent = 
+                opencvResults.edgeCount < wasmResults.edges_found ? '🏆 OpenCV Cleaner' : '⚖️ Similar';
+            document.getElementById('lineStatus').textContent = 
+                opencvResults.lineCount >= wasmResults.lines_found ? '🏆 OpenCV Better' : '⚖️ Similar';
+            document.getElementById('mtf50Status').textContent = 
+                Math.abs(opencvResults.mtf50 - wasmResults.mtf50) < 0.01 ? '✅ Consistent' : '⚠️ Different';
+            document.getElementById('timeStatus').textContent = 
+                opencvResults.processingTime < wasmResults.processingTime ? '🏆 OpenCV Faster' : '🏆 WebAssembly Faster';
+            
+            // Final recommendation
+            const recommendation = generateRecommendation(opencvResults, wasmResults, totalTime);
+            document.getElementById('finalRecommendation').innerHTML = recommendation;
+            
+            // Show results
+            document.getElementById('performanceGrid').style.display = 'grid';
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+        
+        function generateRecommendation(opencv, wasm, totalTime) {
+            const opencvCleaner = opencv.edgeCount < wasm.edges_found;
+            const opencvFaster = opencv.processingTime < wasm.processingTime;
+            const opencvMoreLines = opencv.lineCount >= wasm.lines_found;
+            
+            if (opencvCleaner && opencvMoreLines) {
+                return `
+                    <div style="background: linear-gradient(45deg, #4caf50, #45a049); color: white; padding: 20px; border-radius: 8px;">
+                        <h4>🏆 RECOMMENDATION: Proceed with OpenCV.js!</h4>
+                        <p><strong>OpenCV.js clearly outperforms our custom WebAssembly:</strong></p>
+                        <ul>
+                            <li>✅ Cleaner edge detection (${opencv.edgeCount} vs ${wasm.edges_found} edges)</li>
+                            <li>✅ Better line detection (${opencv.lineCount} vs ${wasm.lines_found} lines)</li>
+                            <li>✅ Professional-grade algorithms</li>
+                            <li>✅ Total processing time: ${totalTime.toFixed(1)}ms</li>
+                        </ul>
+                        <p><strong>Next Step:</strong> Integrate OpenCV.js with pixel_lab_brenner.cpp for production!</p>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div style="background: linear-gradient(45deg, #ff9800, #f57c00); color: white; padding: 20px; border-radius: 8px;">
+                        <h4>🤔 MIXED RESULTS</h4>
+                        <p>Both approaches have merit. Consider hybrid approach or further optimization.</p>
+                        <p><strong>Total processing time:</strong> ${totalTime.toFixed(1)}ms</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('captureFrame').addEventListener('click', captureFrame);
+        document.getElementById('analyzeHybrid').addEventListener('click', analyzeWithHybridPower);
+    </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# Build outputs
+/build/
+/src/wasm/*.wasm
+/src/wasm/*.js
+
+# Results and debug files
+/results/
+*.png
+*.txt
+*.out
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.env
+
+# C++
+*.o
+*.a
+*.so
+*.dll
+*.exe
+
+# Emscripten
+emsdk/
+.emscripten_cache/
+
+# Temporary files
+temp.*
+*.tmp

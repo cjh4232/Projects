@@ -1,0 +1,22 @@
+// HTML
+<div>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="snap">Snap Photo</button>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</div>
+
+// JavaScript
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(stream) {
+        document.getElementById('video').srcObject = stream;
+    })
+    .catch(function(err) {
+        console.log("An error occurred: " + err);
+    });
+
+document.getElementById('snap').addEventListener('click', function() {
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, 640, 480);
+    // Here you can define regions of interest and send them to the backend
+});
