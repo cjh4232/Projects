@@ -1,690 +1,538 @@
 # Product Requirements Document (PRD)
-## Standalone USB3 Vision Camera Application
+## Standalone USB3 Vision Camera Application with Focus Analysis
 
-**Version:** 1.0
-**Date:** November 14, 2025
-**Project Code Name:** Pixel Lab Standalone
-**Status:** Draft for Review
+**Version:** 2.0
+**Date:** November 22, 2025
+**Project Code Name:** LensLab Desktop
+**Status:** Approved - Ready for Development
 
 ---
 
 ## 1. Executive Summary
 
-This document outlines the requirements for a standalone desktop application that enables users to connect, control, and capture images from any USB3 Vision-compliant camera without requiring installation of proprietary drivers or vendor-specific software.
+This document outlines the requirements for a standalone desktop application that enables users to connect, control, and capture images from any USB3 Vision-compliant camera, with integrated real-time focus quality assessment and MTF (Modulation Transfer Function) analysis.
 
 **Problem Statement:** Currently, using industrial USB3 Vision cameras requires:
-- Installing vendor-specific SDKs and drivers
-- Learning different software interfaces for each camera brand
-- Managing compatibility issues across different systems
+- Installing vendor-specific SDKs and drivers for each camera brand
+- No unified tool for real-time focus quality assessment
+- Separate workflows for camera control and optical analysis
 - Complex setup processes that create friction for users
 
-**Solution:** A unified, plug-and-play application that handles all USB3 Vision cameras through a single interface, with embedded driver support and intuitive controls.
+**Solution:** A unified, high-performance application that:
+- Handles all USB3 Vision cameras through a single interface
+- Provides real-time focus metrics for live adjustment
+- Includes full MTF analysis for optical quality verification
+- Built on proven, production-ready analysis code (LensLab MTF Analyzer)
 
 ---
 
 ## 2. Product Overview
 
 ### 2.1 Product Vision
-Create a professional-grade camera application that makes USB3 Vision cameras as easy to use as consumer webcams, while maintaining full access to industrial camera features and performance.
+Create a professional-grade optical testing tool that combines universal camera support with real-time focus analysis, enabling users to both adjust and verify optical system performance in a single workflow.
 
-### 2.2 Target Market
-- Machine vision engineers and integrators
-- Quality control and inspection systems
-- Research laboratories and academic institutions
-- Prototype and development teams
-- Industrial automation companies
-- Small to medium manufacturers
+### 2.2 Target Users
+- **Optical Engineers:** Aligning camera sensors to optical systems
+- **Machine Vision Integrators:** Setting up and verifying camera focus
+- **Quality Control Teams:** Validating optical system performance
+- **R&D / Prototyping Teams:** Evaluating lens/camera combinations
+- **Production Line Operators:** Verifying focus during assembly
 
-### 2.3 Competitive Differentiation
-- **Universal Compatibility:** Works with ANY USB3 Vision camera (Basler, FLIR, Allied Vision, IDS, etc.)
-- **Zero Driver Installation:** Bundled drivers eliminate setup friction
-- **Unified Interface:** Consistent UI regardless of camera brand
-- **Rapid Deployment:** Install once, connect any camera
-- **Cross-Platform:** Windows, Linux, and macOS support
+### 2.3 Key Differentiators
+- **Universal Camera Support:** Works with Basler, FLIR, IDS, Allied Vision, and other USB3 Vision cameras
+- **Integrated Focus Analysis:** Real-time focus metrics + full MTF analysis in one tool
+- **Production-Proven Core:** Built on validated MTF analyzer (<1% measurement variance)
+- **High Performance:** Native C++ with GPU-accelerated rendering
+- **Zero Dependencies:** Single executable, no driver installation required
 
 ---
 
 ## 3. Goals and Objectives
 
 ### 3.1 Primary Goals
-1. **Eliminate Setup Friction:** Users should connect a camera and start capturing within 60 seconds
-2. **Universal Camera Support:** Support 95%+ of USB3 Vision cameras on the market
-3. **Professional Features:** Provide access to all camera parameters and capabilities
-4. **Reliable Performance:** Achieve sustained frame rates matching camera specifications
+1. **Universal Camera Access:** Connect to any USB3 Vision camera without vendor software
+2. **Real-Time Focus Feedback:** Enable live focus adjustment with instant visual feedback
+3. **Accurate MTF Analysis:** Provide ISO 12233-compliant optical quality measurements
+4. **Professional Performance:** Handle high-speed cameras (100+ FPS) without frame drops
 
 ### 3.2 Success Metrics
-- Time from installation to first image capture: < 2 minutes
-- Camera discovery success rate: > 98%
-- Frame rate performance: > 95% of camera specification
-- User satisfaction score: > 4.5/5.0
-- Support tickets per user: < 0.1
+| Metric | Target |
+|--------|--------|
+| Time to first image | < 60 seconds |
+| Camera discovery rate | > 98% of USB3 Vision cameras |
+| Focus metric update rate | 10-30 Hz (user configurable) |
+| MTF measurement accuracy | < 15% error vs theoretical |
+| MTF measurement variance | < 1% between similar ROIs |
+| Frame rate achieved | > 95% of camera specification |
 
-### 3.3 Non-Goals (Out of Scope for v1.0)
-- GigE Vision camera support (future consideration)
-- Real-time image processing/analysis
+### 3.3 Scope for v1.0
+**In Scope:**
+- USB3 Vision camera connection and control
+- Live preview with ROI overlay
+- Real-time focus metrics (Brenner, Tenengrad, Modified Laplacian)
+- Full MTF analysis (MTF50, MTF20, MTF10, FWHM)
+- Image capture and export
+- Camera parameter control
+
+**Out of Scope (Future Versions):**
+- GigE Vision camera support
 - Multi-camera synchronization
-- Video recording with encoding (raw capture only)
+- Video recording with encoding
+- Automated focus optimization (closed-loop control)
 - Camera calibration tools
 
 ---
 
-## 4. User Personas
+## 4. Core Features
 
-### 4.1 Primary Persona: "Testing Tom"
-**Role:** Quality Control Engineer
-**Experience:** Moderate technical skills, familiar with cameras
-**Pain Points:** Wastes hours installing drivers, needs to test different cameras
-**Goals:** Quick camera evaluation, capture test images, verify specifications
-**Use Case:** Needs to test 5 different camera models to select one for production line
+### 4.1 Camera Discovery and Connection (P0 - Critical)
 
-### 4.2 Secondary Persona: "Research Rachel"
-**Role:** Laboratory Researcher
-**Experience:** Domain expert, limited IT knowledge
-**Pain Points:** IT restrictions prevent driver installation, needs simple tools
-**Goals:** Capture images for analysis, adjust exposure, save to specific formats
-**Use Case:** Microscopy imaging with industrial camera for publication-quality images
-
-### 4.3 Tertiary Persona: "Integration Ian"
-**Role:** Machine Vision Integrator
-**Experience:** Expert level, needs full camera control
-**Pain Points:** Vendor software is limited, needs scriptable/automatable solution
-**Goals:** Access all camera features, optimize performance, batch operations
-**Use Case:** Configuring cameras for deployment in industrial inspection systems
-
----
-
-## 5. Core Features
-
-### 5.1 Camera Discovery and Connection (P0 - Critical)
-**Description:** Automatic detection and connection of USB3 Vision cameras
+**Description:** Automatic detection and connection of USB3 Vision cameras via GenICam/GenTL.
 
 **Requirements:**
-- Auto-detect all connected USB3 Vision cameras on launch
-- Display camera information (vendor, model, serial number, firmware version)
-- Hot-plug support (detect cameras connected after launch)
-- Connection status indicators (connected, disconnected, error states)
-- Support for multiple cameras (list view with selection)
-- Graceful handling of unsupported or malfunctioning cameras
+- Enumerate all USB3 Vision cameras on system startup
+- Display: Vendor, Model, Serial Number, Firmware Version
+- Hot-plug detection (cameras connected after launch)
+- Support multiple simultaneous cameras (list with selection)
+- Graceful error handling for busy/unavailable cameras
 
-**Acceptance Criteria:**
-- Camera detected within 3 seconds of connection
-- Display complete camera information before connection
-- User can connect/disconnect cameras without application restart
-- Error messages are clear and actionable
+**Technical Implementation:**
+- GenICam GenTL producer discovery
+- Support vendor GenTL files: Basler, FLIR/Teledyne, IDS, Allied Vision
+- Fallback to generic USB3 Vision producer if available
 
-### 5.2 Live Camera Preview (P0 - Critical)
-**Description:** Real-time video stream from connected camera
+### 4.2 Live Camera Preview (P0 - Critical)
 
-**Requirements:**
-- Display live stream at camera's native resolution
-- Adjustable preview window size (fit to window, 50%, 100%, 200%)
-- Frame rate display (actual FPS achieved)
-- Histogram overlay (optional, per channel)
-- Crosshair/grid overlay (optional)
-- Zoom and pan controls for high-resolution images
-- Freeze frame capability
-- Exposure warning indicators (over/under exposure highlighting)
-
-**Acceptance Criteria:**
-- Preview starts within 1 second of camera connection
-- Frame rate matches camera capability (tolerance: -5%)
-- Preview remains responsive during parameter changes
-- Memory usage stable during extended preview sessions
-
-### 5.3 Image Capture (P0 - Critical)
-**Description:** Single frame and sequence capture functionality
+**Description:** Real-time video display with ROI overlay for focus analysis.
 
 **Requirements:**
-- Single-shot capture (capture current frame)
-- Burst mode (capture N frames as fast as possible)
-- Time-lapse mode (capture every N seconds for M minutes)
-- Save formats: TIFF (uncompressed), PNG, JPEG, BMP, RAW (camera-specific format)
-- Metadata embedding (camera settings, timestamp, camera info)
-- File naming templates (timestamp, sequence number, custom prefix)
-- Save location selector with recent locations
-- Capture queue indicator (for burst/time-lapse modes)
-- Image counter (images captured this session)
+- Display live stream at full camera resolution
+- GPU-accelerated rendering via OpenGL
+- Adjustable display scaling (fit, 50%, 100%, 200%)
+- Real-time frame rate display
+- ROI overlay with drag-to-position capability
+- Crosshair and grid overlays (toggleable)
+- Histogram overlay (optional)
 
-**Acceptance Criteria:**
-- Image saved within 500ms of capture trigger
-- No dropped frames during burst capture at max camera rate
-- All metadata correctly embedded in file headers
-- File naming conflicts handled gracefully
+**Performance Targets:**
+- < 50ms sensor-to-screen latency
+- Support up to 500 FPS acquisition
+- Smooth rendering at 60 Hz display refresh
 
-### 5.4 Camera Parameter Control (P0 - Critical)
-**Description:** Access and adjust camera settings and features
+### 4.3 Focus Quality Analysis - Live Mode (P0 - Critical)
 
-**Requirements:**
-- **Exposure Control:**
-  - Exposure time (manual, slider + numeric input)
-  - Auto-exposure mode with ROI selection
-  - Gain control (manual, auto)
-  - Black level adjustment
+**Description:** Real-time focus metrics for active focus adjustment.
 
-- **Image Format:**
-  - Resolution selection (if camera supports multiple)
-  - Pixel format selection (Mono8, Mono12, RGB8, BayerRG8, etc.)
-  - Binning and decimation controls
-  - ROI (Region of Interest) selection
-
-- **Timing:**
-  - Frame rate control
-  - Trigger mode (freerun, software, hardware)
-  - Trigger source and polarity
-
-- **Image Quality:**
-  - White balance (manual, auto, one-push)
-  - Gamma correction
-  - Sharpness
-  - Saturation (color cameras)
-
-- **Advanced:**
-  - LUT (Look-Up Table) selection
-  - Defect pixel correction
-  - Flat field correction
-  - Test pattern generation
-
-**UI Requirements:**
-- Organized in collapsible categories
-- Real-time preview updates as parameters change
-- Reset to defaults button per category
-- Preset save/load functionality (save current settings as named preset)
-- Display parameter ranges and current values
-- Disable unavailable features gracefully
-
-**Acceptance Criteria:**
-- All GenICam features exposed (read/write parameters)
-- Parameter changes applied within 100ms
-- Preview reflects changes immediately
-- No crashes from invalid parameter combinations
-
-### 5.5 Camera Information Display (P1 - Important)
-**Description:** Comprehensive camera and image information
+**Metrics Provided:**
+| Metric | Description | Use Case |
+|--------|-------------|----------|
+| Brenner Gradient | Sum of squared horizontal/vertical gradients | General focus |
+| Tenengrad | Sobel gradient magnitude | Edge sharpness |
+| Modified Laplacian | Second derivative response | Fine focus |
+| Combined Score | Weighted average (0-100 scale) | Quick assessment |
 
 **Requirements:**
-- Camera details panel:
-  - Vendor, model, serial number
-  - Firmware version
-  - USB connection speed/bandwidth
-  - Sensor information (size, pixel size, type)
-  - Temperature (if available)
+- Update rate: 10-30 Hz (user configurable)
+- Per-ROI scoring (up to 5 ROIs: Center, UL, UR, LL, LR)
+- Visual feedback: Color-coded quality indicator (Red/Yellow/Green)
+- Trend indicator: Arrow showing improvement/degradation direction
+- Audio feedback option: Tone pitch proportional to focus score
 
-- Image information:
-  - Resolution and pixel format
-  - Current frame rate
-  - Exposure time and gain values
-  - Timestamp
-  - Buffer status (frames in queue)
-
-- Statistics:
-  - Min/max/mean pixel values
-  - Histogram data
-  - Dropped frames counter
-
-**Acceptance Criteria:**
-- All information updates in real-time
-- Information exportable to text/JSON format
-- Temperature monitoring for cameras with sensors
-
-### 5.6 User Preferences (P1 - Important)
-**Description:** Application configuration and personalization
-
-**Requirements:**
-- Default save location
-- Default file format and naming template
-- Auto-start preview on camera connect
-- Preview overlay preferences
-- Keyboard shortcuts customization
-- Theme selection (light/dark mode)
-- Auto-check for updates
-- Telemetry opt-in/out
-
-**Acceptance Criteria:**
-- Preferences persist across sessions
-- Changes take effect immediately (no restart required)
-- Import/export preferences file
-
----
-
-## 6. Technical Requirements
-
-### 6.1 USB3 Vision Standard Compliance
-- Full USB3 Vision 1.0 specification compliance
-- GenICam GenApi 2.0+ support
-- Support for standard pixel formats defined in PFNC (Pixel Format Naming Convention)
-- Handle cameras with custom/vendor-specific features
-
-### 6.2 Performance Requirements
-- **Latency:** < 50ms from sensor to screen display
-- **Frame Rate:** Support up to 500 FPS (limited by camera/USB bandwidth)
-- **Resolution:** Support up to 20 MP cameras
-- **CPU Usage:** < 25% during live preview at 30 FPS (1080p)
-- **Memory:** < 500 MB baseline, + buffer memory for high-speed capture
-- **Startup Time:** < 5 seconds to ready state
-
-### 6.3 Reliability Requirements
-- **Uptime:** Application should run continuously for 24+ hours without degradation
-- **Error Recovery:** Automatic recovery from temporary USB disconnections
-- **Crash Rate:** < 0.1% (1 crash per 1000 hours of operation)
-- **Data Integrity:** Zero data corruption in saved images
-
-### 6.4 Platform Support
-**Windows:**
-- Windows 10 (64-bit) and newer
-- Bundled WinUSB/LibUSB driver package
-- Microsoft Visual C++ Redistributable handling
-
-**Linux:**
-- Ubuntu 20.04 LTS and newer
-- Fedora 35+
-- Generic Linux support via AppImage
-- Built-in libusb support
-
-**macOS:**
-- macOS 11 (Big Sur) and newer
-- Apple Silicon (M1/M2/M3) and Intel support
-- Unsigned kernel extension alternative solution
-
-### 6.5 Hardware Requirements
-**Minimum:**
-- CPU: Dual-core 2.0 GHz
-- RAM: 4 GB
-- USB: USB 3.0 port
-- Display: 1280x720
-
-**Recommended:**
-- CPU: Quad-core 3.0 GHz
-- RAM: 8 GB
-- USB: USB 3.1 Gen 2 port
-- Display: 1920x1080 or higher
-
----
-
-## 7. Non-Functional Requirements
-
-### 7.1 Usability
-- First-time users should capture an image within 5 minutes without documentation
-- All primary functions accessible within 2 clicks
-- Tooltips on all controls
-- Keyboard shortcuts for common operations
-- Drag-and-drop file saving
-- Undo/redo for parameter changes
-
-### 7.2 Accessibility
-- High contrast mode support
-- Keyboard-only navigation
-- Screen reader compatibility (ARIA labels)
-- Minimum font size 12pt
-- Colorblind-friendly UI (not relying solely on color)
-
-### 7.3 Security
-- No network communication required for core functionality
-- Optional telemetry clearly disclosed
-- No collection of sensitive data
-- File system access limited to user-selected directories
-- USB device access limited to USB3 Vision cameras
-
-### 7.4 Maintainability
-- Modular architecture for easy updates
-- Comprehensive logging system
-- Automated testing (unit, integration, UI)
-- Clear error messages with diagnostic codes
-- Plugin architecture for future extensions
-
-### 7.5 Documentation
-- In-app help system
-- Quick start guide
-- User manual (PDF + online)
-- API documentation for scripting
-- Troubleshooting guide
-- FAQ section
-
----
-
-## 8. Technology Stack Recommendations
-
-### 8.1 Programming Language
-**Option A: Python (Recommended for MVP)**
-- **Pros:** Rapid development, rich ecosystem, cross-platform, strong imaging libraries
-- **Cons:** Performance overhead, distribution complexity
-- **Key Libraries:**
-  - `harvesters` - GenICam/USB3Vision implementation
-  - `genicam` - GenICam standard interface
-  - `PyQt6` or `PySide6` - Professional UI framework
-  - `opencv-python` - Image processing and display
-  - `numpy` - Array operations
-  - `pillow` - Image file I/O
-  - `PyInstaller` or `cx_Freeze` - Standalone packaging
-
-**Option B: C++ (For Production)**
-- **Pros:** Maximum performance, direct hardware access, professional standard
-- **Cons:** Longer development time, complexity
-- **Key Libraries:**
-  - `GenApi` - GenICam reference implementation
-  - `Qt6` - UI framework
-  - `OpenCV` - Image processing
-  - `libusbp` - USB communication
-  - `Aravis` - USB3 Vision implementation (Linux-friendly)
-
-**Option C: Rust (Modern Alternative)**
-- **Pros:** Performance + safety, growing ecosystem, modern tooling
-- **Cons:** Smaller camera library ecosystem, steeper learning curve
-- **Key Libraries:**
-  - Custom USB3 Vision implementation needed
-  - `egui` or `iced` - UI frameworks
-  - `image` - Image handling
-
-**Recommendation:** Start with **Python** for rapid prototyping and MVP validation. Consider C++ port for v2.0 if performance requirements demand it.
-
-### 8.2 Architecture Pattern
-**Model-View-Controller (MVC) with Service Layer**
-
+**UI Display:**
 ```
 ┌─────────────────────────────────────────┐
-│           User Interface (View)          │
-│  [Qt Widgets/QML - Camera Control GUI]  │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│         Controller Layer                 │
-│  [Event Handlers, Command Dispatcher]   │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│         Service Layer                    │
-│  [Business Logic, Image Processing]     │
-├─────────────────────────────────────────┤
-│  • CameraManager Service                │
-│  • ImageCapture Service                 │
-│  • ParameterControl Service             │
-│  • FileManager Service                  │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│         Model Layer                      │
-│  [Data Models, State Management]        │
-├─────────────────────────────────────────┤
-│  • Camera Model                         │
-│  • ImageBuffer Model                    │
-│  • Settings Model                       │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│      Hardware Abstraction Layer         │
-│   [USB3Vision/GenICam Interface]        │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│         USB3 Vision Cameras             │
+│  Live Preview                           │
+│  ┌─────┐                    ┌─────┐    │
+│  │ UL  │                    │ UR  │    │
+│  │ 78  │                    │ 82  │    │
+│  └─────┘                    └─────┘    │
+│              ┌─────┐                    │
+│              │  C  │                    │
+│              │ 85  │                    │
+│              └─────┘                    │
+│  ┌─────┐                    ┌─────┐    │
+│  │ LL  │                    │ LR  │    │
+│  │ 76  │                    │ 79  │    │
+│  └─────┘                    └─────┘    │
 └─────────────────────────────────────────┘
 ```
 
-### 8.3 Key Components
+### 4.4 MTF Analysis - Capture Mode (P0 - Critical)
 
-**1. Camera Discovery Engine**
-- USB device enumeration
-- USB3Vision device identification (TLType filter)
-- Vendor and model parsing from XML
+**Description:** Full MTF analysis on captured frames for optical quality verification.
 
-**2. GenICam Parameter Manager**
-- XML parsing (camera device description files)
-- Feature tree navigation
-- Type-safe parameter access
-- Callback system for parameter changes
+**Analysis Pipeline (from LensLab MTF Analyzer):**
+1. **Edge Detection:** Identify slant edges in ROI (8-15° optimal angle)
+2. **ESF Extraction:** Sample Edge Spread Function perpendicular to edge
+3. **LSF Computation:** Derivative of ESF = Line Spread Function
+4. **FFT Analysis:** Compute MTF curve from LSF
+5. **Metric Extraction:** Calculate MTF50, MTF20, MTF10, FWHM
 
-**3. Image Acquisition Pipeline**
-- Buffer management (ring buffer implementation)
-- Frame grabbing thread
-- Pixel format conversion
-- Display buffer preparation
+**Metrics Provided:**
+| Metric | Description | Units |
+|--------|-------------|-------|
+| MTF50 | Frequency at 50% contrast | cycles/pixel, lp/mm |
+| MTF20 | Frequency at 20% contrast | cycles/pixel, lp/mm |
+| MTF10 | Frequency at 10% contrast | cycles/pixel, lp/mm |
+| FWHM | Full Width at Half Maximum | pixels |
+| Quality Score | ROI quality assessment | 0-100 |
 
-**4. UI Framework**
-- Main window (camera list, preview, controls)
-- Parameter tree widget (collapsible, searchable)
-- Image viewer with zoom/pan
-- Settings dialog
-- File save dialog with options
+**Requirements:**
+- Support slant-edge targets (ISO 12233 compliant)
+- Support crosshair patterns (sagittal/tangential analysis)
+- Quality filtering: Reject poor-quality ROIs with explanation
+- Debug visualization: ESF, LSF, and MTF curve plots
+- Export: PNG images + JSON/CSV data
 
-**5. File I/O Manager**
-- Multi-format saving (TIFF, PNG, JPEG, BMP)
-- Metadata encoding
-- Batch operations
-- Background saving thread
+**UI Display:**
+```
+┌─────────────────────────────────────────────────────┐
+│  MTF Analysis Results                               │
+├─────────────────────────────────────────────────────┤
+│  MTF50: 0.142 cyc/px  (71.0 lp/mm @ 5μm pixel)     │
+│  MTF20: 0.089 cyc/px  (44.5 lp/mm)                 │
+│  MTF10: 0.052 cyc/px  (26.0 lp/mm)                 │
+│  FWHM:  3.24 pixels                                 │
+│  Quality: 92/100 (Excellent)                        │
+├─────────────────────────────────────────────────────┤
+│  [MTF Curve Graph]                                  │
+│  1.0 ─┬─────────────────────────                   │
+│       │ ╲                                           │
+│  0.5 ─┼───╲─────────────────────  ← MTF50          │
+│       │     ╲                                       │
+│  0.2 ─┼───────╲─────────────────  ← MTF20          │
+│       │         ╲                                   │
+│  0.0 ─┴───────────────────────────                 │
+│       0    0.1   0.2   0.3   0.4   0.5 cyc/px      │
+└─────────────────────────────────────────────────────┘
+```
+
+### 4.5 Camera Parameter Control (P0 - Critical)
+
+**Description:** Full access to camera settings via GenICam interface.
+
+**Core Parameters:**
+- **Exposure:** Time (μs/ms), Auto-exposure enable, AE ROI
+- **Gain:** Value (dB), Auto-gain enable
+- **Frame Rate:** Target FPS, enable/disable limit
+- **Pixel Format:** Mono8, Mono12, RGB8, BayerRG8, etc.
+- **ROI/AOI:** Offset X/Y, Width, Height
+- **Trigger:** Mode (Freerun/Software/Hardware), Source, Polarity
+
+**Advanced Parameters (collapsible):**
+- Black Level, Gamma, White Balance
+- Binning, Decimation
+- LUT selection
+- Test pattern generation
+
+**UI Requirements:**
+- Slider + numeric input for continuous values
+- Immediate preview update on change
+- Reset to defaults button
+- Save/Load parameter presets
+
+### 4.6 Image Capture and Export (P1 - Important)
+
+**Description:** Capture and save images with analysis results.
+
+**Capture Modes:**
+- Single frame capture
+- Burst capture (N frames at max rate)
+- Timed capture (every N seconds)
+
+**Export Formats:**
+- Images: TIFF (16-bit), PNG, JPEG, BMP
+- Analysis: JSON, CSV
+- Reports: PNG with embedded metrics
+
+**File Naming:**
+- Template system: `{date}_{time}_{camera}_{sequence}.{ext}`
+- Auto-increment sequence numbers
+- Configurable save location
 
 ---
 
-## 9. Development Phases
+## 5. Technology Stack (Finalized)
 
-### Phase 1: Foundation (Weeks 1-3)
-**Goal:** Prove core technology and basic functionality
+### 5.1 Core Technologies
+
+| Component | Technology | Rationale |
+|-----------|------------|-----------|
+| **Language** | C++17 | Performance, direct hardware access, existing MTF code |
+| **UI Framework** | Dear ImGui + ImPlot | Fast iteration, real-time capable, familiar |
+| **Rendering** | OpenGL 3.3 | Cross-platform GPU acceleration |
+| **Camera SDK** | GenICam + GenTL | Universal USB3 Vision support |
+| **Image Processing** | OpenCV 4.x | Industry standard, comprehensive |
+| **Build System** | CMake | Cross-platform builds |
+
+### 5.2 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        APPLICATION                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    UI LAYER (ImGui)                       │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ Camera List │ │ Live View   │ │ Analysis Results    │ │   │
+│  │  │ & Controls  │ │ + ROI       │ │ + MTF Curves        │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌───────────────────────────▼──────────────────────────────┐   │
+│  │                   APPLICATION CORE                        │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────────┐│   │
+│  │  │ CameraManager   │  │ AnalysisEngine                  ││   │
+│  │  │ - Discovery     │  │ - FocusMetrics (Brenner, etc)   ││   │
+│  │  │ - Connection    │  │ - MTFAnalyzer (from LensLab)    ││   │
+│  │  │ - Parameters    │  │ - ROI Management                ││   │
+│  │  │ - Acquisition   │  │ - Quality Assessment            ││   │
+│  │  └─────────────────┘  └─────────────────────────────────┘│   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│  ┌───────────────────────────▼──────────────────────────────┐   │
+│  │              HARDWARE ABSTRACTION LAYER                   │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │              GenICam / GenTL Interface               │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  │       │              │              │              │      │   │
+│  │  ┌────▼────┐   ┌────▼────┐   ┌────▼────┐   ┌────▼────┐  │   │
+│  │  │ Basler  │   │  FLIR   │   │   IDS   │   │ Allied  │  │   │
+│  │  │  .cti   │   │  .cti   │   │  .cti   │   │  .cti   │  │   │
+│  │  └─────────┘   └─────────┘   └─────────┘   └─────────┘  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+└──────────────────────────────▼───────────────────────────────────┘
+                        USB3 Vision Cameras
+```
+
+### 5.3 Key Dependencies
+
+| Library | Version | Purpose | License |
+|---------|---------|---------|---------|
+| Dear ImGui | 1.90+ | UI Framework | MIT |
+| ImPlot | 0.16+ | Plotting/Graphs | MIT |
+| OpenCV | 4.8+ | Image Processing | Apache 2.0 |
+| GLFW | 3.3+ | Window/OpenGL | Zlib |
+| GenICam Reference | 3.4+ | Camera Interface | GenICam License |
+| stb_image | Latest | Image I/O | Public Domain |
+| nlohmann/json | 3.11+ | JSON Export | MIT |
+
+### 5.4 Integration with LensLab Codebase
+
+**Files to Integrate:**
+| Source File | Purpose | Integration |
+|-------------|---------|-------------|
+| `mtf_analyzer_6.cpp` | Core MTF analysis | Extract as library |
+| `pixel_lab_brenner.cpp` | Focus metrics | Port from WASM to native |
+| Validation scripts | Testing | Adapt for native builds |
+
+**Refactoring Required:**
+1. Extract `MTFAnalyzer` class into standalone header/source
+2. Remove OpenCV `highgui` dependencies (use ImGui for display)
+3. Add streaming interface for live frame analysis
+4. Create C++ focus metrics (currently Emscripten-specific)
+
+---
+
+## 6. Development Phases
+
+### Phase 1: Foundation (Weeks 1-2)
+**Goal:** Basic camera connection and live preview
 
 **Deliverables:**
-- [ ] Development environment setup
-- [ ] USB3Vision/GenICam library integration
-- [ ] Camera discovery working (enumerate and identify cameras)
-- [ ] Basic Qt UI shell (window, menu, camera list)
-- [ ] Single camera connection/disconnection
-- [ ] Basic live preview (grayscale only, no controls)
+- [ ] CMake project structure
+- [ ] ImGui + OpenGL window with basic layout
+- [ ] GenICam integration (camera discovery)
+- [ ] Single camera connection
+- [ ] Live preview (grayscale, basic)
+- [ ] Frame rate display
 
 **Success Criteria:**
-- Can detect and list connected USB3 Vision cameras
-- Can connect to a test camera and display live preview
+- Can list connected USB3 Vision cameras
+- Can display live video from a camera
+- Achieves target frame rate
 
-### Phase 2: Core Features (Weeks 4-7)
-**Goal:** Complete essential functionality for MVP
+### Phase 2: Core Analysis (Weeks 3-4)
+**Goal:** Integrate MTF analyzer and focus metrics
 
 **Deliverables:**
-- [ ] Full parameter control UI (exposure, gain, resolution)
-- [ ] Image capture (single shot, save to TIFF/PNG)
-- [ ] Preview enhancements (zoom, pan, histogram)
-- [ ] Camera information display
-- [ ] File management (naming, location selection)
-- [ ] Color camera support (RGB, Bayer)
-- [ ] Multi-camera support (connect multiple, switch between)
+- [ ] Port LensLab MTF analyzer to library
+- [ ] Implement native focus metrics (Brenner, Tenengrad, ML)
+- [ ] ROI overlay system (draggable regions)
+- [ ] Live focus score display
+- [ ] Single-frame MTF analysis
+- [ ] Basic results display
 
 **Success Criteria:**
-- Complete "first image capture" workflow from camera connect to saved file
-- All basic camera parameters controllable
-- Works with at least 2 different camera brands
+- Real-time focus metrics updating at 10+ Hz
+- MTF analysis produces valid results
+- Results match LensLab validation targets
 
-### Phase 3: Advanced Features (Weeks 8-10)
-**Goal:** Add professional-grade capabilities
+### Phase 3: Full Features (Weeks 5-6)
+**Goal:** Complete camera control and analysis features
 
 **Deliverables:**
-- [ ] Burst capture mode
-- [ ] Time-lapse capture
-- [ ] Preset save/load system
-- [ ] Advanced parameter access (trigger, LUT, etc.)
-- [ ] Keyboard shortcuts
-- [ ] User preferences system
-- [ ] Image metadata embedding
-- [ ] Statistics display (histogram, min/max/mean)
+- [ ] Full camera parameter control UI
+- [ ] Multiple ROI support (5 positions)
+- [ ] MTF curve visualization (ImPlot)
+- [ ] Image capture (single, burst)
+- [ ] Export (TIFF, PNG, JSON)
+- [ ] Preset save/load
+- [ ] Histogram display
 
 **Success Criteria:**
-- Can capture sequences without dropped frames
-- Settings persist across sessions
-- Advanced users can access all camera features
+- All camera parameters accessible
+- MTF curves render correctly
+- Images save without corruption
 
-### Phase 4: Polish & Packaging (Weeks 11-12)
+### Phase 4: Polish & Testing (Weeks 7-8)
 **Goal:** Production-ready release
 
 **Deliverables:**
-- [ ] Cross-platform testing and fixes
-- [ ] Installer creation (Windows, Linux packages, macOS DMG)
-- [ ] Bundled driver packaging
-- [ ] User documentation
+- [ ] Multi-camera brand testing (Basler, FLIR, IDS, Allied Vision)
+- [ ] Cross-platform builds (Windows, Linux, macOS)
 - [ ] Error handling and logging
 - [ ] Performance optimization
-- [ ] Automated testing suite
-- [ ] Beta testing program
+- [ ] User documentation
+- [ ] Installer/packaging
 
 **Success Criteria:**
-- Installer works on clean systems
-- No critical bugs in issue tracker
-- Documentation complete
-- Positive feedback from beta testers
-
-### Phase 5: Release & Iteration (Week 13+)
-**Goal:** Launch and improve based on feedback
-
-**Deliverables:**
-- [ ] v1.0 release
-- [ ] Marketing website/landing page
-- [ ] User onboarding flow
-- [ ] Support system setup
-- [ ] Analytics and crash reporting
-- [ ] Regular updates based on feedback
+- Works with all target camera brands
+- Stable 24+ hour operation
+- Clean install on fresh systems
 
 ---
 
-## 10. User Stories (MVP)
+## 7. Project Structure
 
-### Epic 1: Camera Connection
-- As a user, I want to see all connected cameras when I launch the app
-- As a user, I want to connect to a camera with one click
-- As a user, I want to see if a camera disconnects unexpectedly
-- As a user, I want to reconnect without restarting the application
-
-### Epic 2: Image Preview
-- As a user, I want to see a live preview immediately after connecting
-- As a user, I want to zoom in to inspect image details
-- As a user, I want to see a histogram to judge exposure
-- As a user, I want to freeze the preview to examine a frame
-
-### Epic 3: Camera Control
-- As a user, I want to adjust exposure time to control brightness
-- As a user, I want to adjust gain for low-light conditions
-- As a user, I want to enable auto-exposure for quick setup
-- As a user, I want to save my settings as a preset
-
-### Epic 4: Image Capture
-- As a user, I want to capture the current frame with one click
-- As a user, I want to choose where to save images
-- As a user, I want images saved in TIFF format for maximum quality
-- As a user, I want to capture a burst of 10 images rapidly
-
----
-
-## 11. Open Questions & Decisions Needed
-
-### 11.1 Licensing & Distribution
-- [ ] **Software License:** Open source (MIT/Apache) or proprietary?
-- [ ] **Business Model:** Free, freemium, or paid?
-- [ ] **Driver Licensing:** Confirm redistribution rights for USB3Vision drivers
-- [ ] **GenICam License:** Review GenICam usage terms
-
-### 11.2 Technical Decisions
-- [ ] **Primary Language:** Python (fast dev) vs C++ (performance)?
-- [ ] **UI Framework:** Qt (professional) vs web-based (Electron/Tauri)?
-- [ ] **Harvesters vs Vimba:** Which GenICam library for Python?
-- [ ] **Buffer Strategy:** How many frames to buffer for high-speed capture?
-- [ ] **Thread Model:** Single UI thread + worker threads, or async architecture?
-
-### 11.3 Feature Prioritization
-- [ ] **Recording:** Is video recording (not just single frames) needed for v1.0?
-- [ ] **Processing:** Should basic processing (rotate, crop, adjust levels) be included?
-- [ ] **Calibration:** Camera calibration tools in scope for v1.0?
-- [ ] **Scripting:** Command-line or Python API for automation?
-- [ ] **Multi-camera Sync:** Hardware sync for multi-camera capture in v1.0?
-
-### 11.4 UX Decisions
-- [ ] **Default Layout:** Single window or multi-window interface?
-- [ ] **Preset Sharing:** Should presets be exportable/shareable between users?
-- [ ] **Cloud Features:** Any cloud storage or sharing features?
-- [ ] **Wizard:** Should there be a setup wizard for first-time users?
-
-### 11.5 Testing & Validation
-- [ ] **Test Cameras:** Which camera brands/models to test with?
-  - Suggested: Basler ace, FLIR Blackfly S, IDS uEye+, Allied Vision Alvium
-- [ ] **Beta Testers:** Who are target beta users?
-- [ ] **Success Metrics:** What metrics to track for v1.0 validation?
+```
+lenslab-desktop/
+├── CMakeLists.txt
+├── README.md
+├── CLAUDE.md
+│
+├── src/
+│   ├── main.cpp                    # Entry point
+│   ├── app/
+│   │   ├── Application.h/cpp       # Main application class
+│   │   ├── Config.h/cpp            # Settings management
+│   │   └── Logger.h/cpp            # Logging system
+│   │
+│   ├── camera/
+│   │   ├── CameraManager.h/cpp     # Camera discovery & management
+│   │   ├── CameraDevice.h/cpp      # Single camera abstraction
+│   │   ├── FrameBuffer.h/cpp       # Ring buffer for frames
+│   │   └── GenICamHelpers.h/cpp    # GenICam utilities
+│   │
+│   ├── analysis/
+│   │   ├── FocusMetrics.h/cpp      # Brenner, Tenengrad, ML
+│   │   ├── MTFAnalyzer.h/cpp       # Ported from LensLab
+│   │   ├── ROIManager.h/cpp        # ROI definition & tracking
+│   │   └── QualityAssessment.h/cpp # ROI quality scoring
+│   │
+│   ├── ui/
+│   │   ├── UIManager.h/cpp         # ImGui setup & main loop
+│   │   ├── CameraPanel.h/cpp       # Camera list & controls
+│   │   ├── PreviewPanel.h/cpp      # Live view with ROI overlay
+│   │   ├── AnalysisPanel.h/cpp     # Results & MTF curves
+│   │   └── SettingsPanel.h/cpp     # Preferences
+│   │
+│   └── utils/
+│       ├── ImageIO.h/cpp           # Save/load images
+│       ├── Timer.h/cpp             # Performance timing
+│       └── ThreadPool.h/cpp        # Background processing
+│
+├── external/                        # Third-party libs (git submodules)
+│   ├── imgui/
+│   ├── implot/
+│   ├── glfw/
+│   └── json/
+│
+├── resources/
+│   ├── fonts/
+│   └── icons/
+│
+├── test/
+│   ├── test_mtf_analyzer.cpp
+│   ├── test_focus_metrics.cpp
+│   └── test_images/
+│
+└── docs/
+    ├── user_guide.md
+    └── api_reference.md
+```
 
 ---
 
-## 12. Risks and Mitigations
+## 8. Risk Assessment
 
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
-| GenICam library compatibility issues | High | Medium | Early testing with multiple cameras, fallback to alternative libraries |
-| Driver bundling legal/technical problems | High | Medium | Legal review of licenses, test installer on clean systems |
-| Performance inadequate for high-speed cameras | Medium | Low | Optimize critical path, consider C++ for bottlenecks |
-| USB3 bandwidth limitations | Medium | Medium | Implement buffer management, educate users on USB3 requirements |
-| Camera vendor-specific quirks | Medium | High | Build compatibility database, implement vendor-specific workarounds |
-| Cross-platform Qt deployment complexity | Low | Medium | Use Qt installer framework, test early on all platforms |
-| Scope creep delaying MVP | Medium | High | Strict phase gates, defer non-critical features |
+| GenTL producer compatibility | High | Medium | Test early with all vendors, document requirements |
+| MTF analyzer port introduces bugs | High | Low | Validate against existing test suite |
+| ImGui learning curve | Low | Low | Extensive documentation, familiar to user |
+| Cross-platform OpenGL issues | Medium | Medium | Use GLFW, test early on all platforms |
+| Performance bottlenecks | Medium | Low | Profile early, optimize hot paths |
+| Camera vendor-specific quirks | Medium | High | Build compatibility notes, graceful fallbacks |
 
 ---
 
-## 13. Success Criteria
+## 9. Success Criteria
 
 ### MVP Success (Phase 4 Complete)
-- [ ] Successfully tested with 5+ different camera brands
-- [ ] 10+ beta users complete first-image-capture workflow
-- [ ] Average time to first image < 5 minutes for new users
-- [ ] Zero critical bugs in issue tracker
-- [ ] Installer works on 3 platforms without manual intervention
-- [ ] Positive feedback from all beta testers
+- [ ] Connects to cameras from 4 vendors (Basler, FLIR, IDS, Allied Vision)
+- [ ] Live focus metrics update at 15+ Hz
+- [ ] MTF analysis accuracy within 15% of theoretical
+- [ ] MTF variance < 1% between similar ROIs
+- [ ] Stable operation for 8+ hours
+- [ ] Clean build on Windows and Linux
 
-### Product-Market Fit (Post-Launch)
-- [ ] 100+ active installations within 3 months
-- [ ] User satisfaction score > 4.0/5.0
-- [ ] < 5% churn rate (users who uninstall within 30 days)
-- [ ] Organic word-of-mouth growth
-- [ ] Feature requests align with roadmap
-
----
-
-## 14. Next Steps
-
-1. **Review & Approve PRD:** Stakeholder review and sign-off
-2. **Technology Proof-of-Concept:** Validate Python + Harvesters + Qt stack
-3. **Test Camera Acquisition:** Obtain 2-3 different USB3Vision cameras for testing
-4. **Architecture Design:** Detailed component design and API specifications
-5. **Development Environment:** Set up dev tools, repos, CI/CD
-6. **Phase 1 Kickoff:** Begin foundation development
+### Quality Targets (from LensLab Validation)
+- FWHM accuracy: < 20% error in controlled conditions
+- ROI consistency: < 1% variance between similar ROIs
+- MTF trend validation: MTF50 > MTF20 > MTF10 (correct ordering)
+- Edge angle support: 5-20° (8-15° optimal)
 
 ---
 
-## Appendix A: Reference Materials
+## 10. Appendices
 
-### USB3 Vision Standard
-- [AIA USB3 Vision Specification](https://www.visiononline.org/vision-standards-details.cfm?type=5)
-- GenICam Standard Documentation: http://www.genicam.org/
+### Appendix A: LensLab Integration Reference
 
-### Recommended Libraries
-- **Harvesters:** https://github.com/genicam/harvesters
-- **PyQt6:** https://www.riverbankcomputing.com/software/pyqt/
-- **OpenCV:** https://opencv.org/
-- **Aravis:** https://github.com/AravisProject/aravis (Linux/GStreamer)
+**Source Location:** `/Web Development/lenslab/`
 
-### Camera Vendor Resources
-- Basler: https://www.baslerweb.com/
-- FLIR (Teledyne): https://www.flir.com/products/blackfly-s-usb3/
-- Allied Vision: https://www.alliedvision.com/
-- IDS Imaging: https://en.ids-imaging.com/
+**Key Files:**
+- `src/cpp/mtf_analyzer_6.cpp` - Production MTF analyzer
+- `src/cpp/pixel_lab_brenner.cpp` - Focus metrics (WASM)
+- `MTF_ANALYZER_DEVELOPMENT_REPORT.md` - Validation results
+- `CLAUDE.md` - Build instructions
 
-### Competitive Analysis
-- Basler Pylon Viewer (free, vendor-specific)
-- FLIR Spinnaker (free, vendor-specific)
-- MVTec HALCON (expensive, professional)
-- Cognex VisionPro (expensive, professional)
+**Validation Data:**
+- FWHM accuracy: 15-37% error (acceptable for real-world use)
+- Consistency: <1% variance achieved after coordinate fix
+- Test patterns: `working_targets/` directory
 
----
+### Appendix B: Camera Vendor GenTL Producers
 
-## Appendix B: Glossary
+| Vendor | Producer Name | Download |
+|--------|---------------|----------|
+| Basler | Basler pylon | baslerweb.com |
+| FLIR/Teledyne | Spinnaker SDK | flir.com |
+| IDS | IDS peak | ids-imaging.com |
+| Allied Vision | Vimba X | alliedvision.com |
 
-- **USB3 Vision:** Standard protocol for industrial cameras over USB 3.0
-- **GenICam:** Generic standard interface for cameras (vendor-agnostic)
-- **GenApi:** API specification within GenICam for camera control
-- **PFNC:** Pixel Format Naming Convention (standard pixel formats)
-- **ROI:** Region of Interest (subset of image sensor)
-- **FPS:** Frames Per Second
-- **Bayer Pattern:** Color filter array for single-sensor color cameras
-- **LUT:** Look-Up Table (for gamma/tone correction)
-- **AOI:** Area of Interest (synonym for ROI)
-- **Binning:** Combining adjacent pixels to reduce resolution and increase sensitivity
-- **Decimation:** Skipping pixels to reduce resolution
-- **Trigger:** External signal to initiate frame capture
+### Appendix C: Glossary
+
+- **MTF:** Modulation Transfer Function - measure of optical resolution
+- **ESF:** Edge Spread Function - intensity profile across an edge
+- **LSF:** Line Spread Function - derivative of ESF
+- **FWHM:** Full Width at Half Maximum - sharpness metric
+- **GenICam:** Generic Interface for Cameras - standard API
+- **GenTL:** GenICam Transport Layer - hardware abstraction
+- **ROI:** Region of Interest - analysis area
+- **Slant Edge:** Tilted edge target for MTF measurement (ISO 12233)
 
 ---
 
@@ -692,5 +540,5 @@ Create a professional-grade camera application that makes USB3 Vision cameras as
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2025-11-14 | Claude | Initial draft for review |
-
+| 1.0 | 2025-11-14 | Claude | Initial draft |
+| 2.0 | 2025-11-22 | Claude | Updated with C++/ImGui stack, integrated LensLab MTF analyzer, finalized architecture |
